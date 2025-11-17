@@ -1,0 +1,42 @@
+@model IEnumerable<DnDInventorySystem.Models.Game>
+
+@{
+    ViewData["Title"] = "Join a game";
+    var hasGames = Model.Any();
+}
+
+<div class="d-flex align-items-center justify-content-between mb-4">
+    <div>
+        <h1 class="mb-1">Join an existing game</h1>
+        <p class="text-muted mb-0">Pick a campaign to jump into. You will be added as a player.</p>
+    </div>
+    <a asp-action="Index" class="btn btn-link">Back to your games</a>
+</div>
+
+@if (!hasGames)
+{
+    <div class="alert alert-info">
+        There are no games available to join right now. You can also
+        <a asp-action="Create">create a new game</a>.
+    </div>
+}
+else
+{
+    <div class="list-group">
+        @foreach (var game in Model)
+        {
+            <div class="list-group-item d-flex flex-column flex-md-row justify-content-between gap-3 align-items-md-center">
+                <div>
+                    <h5 class="mb-1">@game.Name</h5>
+                    <div class="text-muted small">Host: @game.CreatedByUser?.Name</div>
+                    <p class="mb-0">@game.Description</p>
+                </div>
+                <form asp-action="JoinGame" method="post" class="text-md-end">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="id" value="@game.Id" />
+                    <button type="submit" class="btn btn-primary">Join</button>
+                </form>
+            </div>
+        }
+    </div>
+}
