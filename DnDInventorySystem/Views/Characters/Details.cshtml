@@ -1,54 +1,98 @@
-@model DnDInventorySystem.Models.Character
+@model DnDInventorySystem.ViewModels.CharacterInventoryViewModel
 
 @{
-    ViewData["Title"] = "Details";
+    var character = Model.Character;
+    ViewData["Title"] = character.Name;
 }
 
-<h1>Details</h1>
-
-<div>
-    <h4>Character</h4>
-    <hr />
-    <dl class="row">
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.Name)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.Name)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.Description)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.Description)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.PhotoUrl)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.PhotoUrl)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.Game)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.Game.Name)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.CreatedByUser)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.CreatedByUser.Id)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.Owner)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.Owner.Id)
-        </dd>
-    </dl>
+<div class="mb-4 d-flex justify-content-between align-items-center">
+    <div>
+        <h1 class="mb-1">@character.Name</h1>
+        <p class="text-muted mb-0">
+            Game: <strong>@character.Game?.Name</strong> · Owner: <strong>@character.Owner?.Name</strong>
+        </p>
+    </div>
+    <div class="d-flex gap-2">
+        <a class="btn btn-primary" asp-action="AssignItems" asp-route-id="@character.Id">Give / assign items</a>
+        <a class="btn btn-outline-secondary" asp-action="Index" asp-route-gameId="@character.GameId">Back to characters</a>
+    </div>
 </div>
-<div>
-    <a asp-action="Edit" asp-route-id="@Model?.Id">Edit</a> |
-    <a asp-action="Index">Back to List</a>
+
+<div class="row g-4">
+    <div class="col-lg-4">
+        <div class="card shadow-sm mb-3">
+            <div class="card-body">
+                <h5 class="card-title">Character info</h5>
+                <p class="mb-2"><strong>Description:</strong> @(!string.IsNullOrWhiteSpace(character.Description) ? character.Description : "No description")</p>
+                <p class="mb-2"><strong>Created by:</strong> @character.CreatedByUser?.Name</p>
+                <p class="mb-0"><strong>Portrait:</strong> @(!string.IsNullOrWhiteSpace(character.PhotoUrl) ? character.PhotoUrl : "No portrait set")</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-8">
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="card-title mb-0">Inventory</h5>
+                    <span class="text-muted small">@Model.Inventory.Count item entries</span>
+                </div>
+
+                @if (!Model.Inventory.Any())
+                {
+                    <p class="text-muted mb-0">No items assigned yet.</p>
+                }
+                else
+                {
+                    <div class="table-responsive">
+                        <table class="table align-middle">
+                            <thead>
+                                <tr>
+                                    <th style="width: 60px;">Pic</th>
+                                    <th>Name</th>
+                                    <th>Description</th>
+                                    <th>Qty</th>
+                                    <th>With them</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var entry in Model.Inventory)
+                                {
+                                    <tr>
+                                        <td>
+                                            @if (!string.IsNullOrWhiteSpace(entry.Item?.PhotoUrl))
+                                            {
+                                                <img src="@entry.Item.PhotoUrl" alt="@entry.Item.Name" class="img-fluid rounded" style="max-width:48px; max-height:48px;" />
+                                            }
+                                            else
+                                            {
+                                                <span class="text-muted small">No img</span>
+                                            }
+                                        </td>
+                                        <td>
+                                            <div class="fw-semibold">@entry.Item?.Name</div>
+                                            <div class="text-muted small">@entry.Item?.Category?.Name</div>
+                                        </td>
+                                        <td class="text-muted small">@entry.Item?.Description</td>
+                                        <td>@entry.Quantity</td>
+                                        <td>
+                                            <input type="checkbox" class="form-check-input" @(entry.IsEquipped ? "checked" : null) disabled />
+                                        </td>
+                                        <td class="text-end">
+                                            <form asp-action="RemoveInventory" method="post" onsubmit="return confirm('Remove this item from the character?');">
+                                                <input type="hidden" name="characterId" value="@character.Id" />
+                                                <input type="hidden" name="entryId" value="@entry.Id" />
+                                                <button type="submit" class="btn btn-sm btn-outline-danger">Remove</button>
+                                            </form>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
 </div>

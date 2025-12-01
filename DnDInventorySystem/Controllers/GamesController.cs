@@ -3,6 +3,7 @@ using System.Security.Claims;
 using System.Threading.Tasks;
 using DnDInventorySystem.Data;
 using DnDInventorySystem.Models;
+using DnDInventorySystem.ViewModels;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -47,7 +48,31 @@ namespace DnDInventorySystem.Controllers
                 return NotFound();
             }
 
-            return View(game);
+            var charactersQuery = _context.Characters
+                .Include(c => c.Owner)
+                .Where(c => c.GameId == game.Id)
+                .OrderBy(c => c.Name);
+            var itemsQuery = _context.Items
+                .Include(i => i.Category)
+                .Where(i => i.GameId == game.Id)
+                .OrderBy(i => i.Name);
+            var categoriesQuery = _context.Categories
+                .Include(c => c.Items)
+                .Where(c => c.GameId == game.Id)
+                .OrderBy(c => c.Name);
+
+            var viewModel = new GameDetailsViewModel
+            {
+                Game = game,
+                Characters = await charactersQuery.Take(3).ToListAsync(),
+                CharacterCount = await charactersQuery.CountAsync(),
+                Items = await itemsQuery.Take(3).ToListAsync(),
+                ItemCount = await itemsQuery.CountAsync(),
+                Categories = await categoriesQuery.Take(3).ToListAsync(),
+                CategoryCount = await categoriesQuery.CountAsync()
+            };
+
+            return View(viewModel);
         }
 
         public IActionResult Create()

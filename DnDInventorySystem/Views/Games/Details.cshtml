@@ -1,28 +1,149 @@
-@model DnDInventorySystem.Models.Game
+@model DnDInventorySystem.ViewModels.GameDetailsViewModel
 
 @{
-    ViewData["Title"] = Model.Name;
+    var game = Model.Game;
+    ViewData["Title"] = game.Name;
     var currentUserId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-    var canEdit = currentUserId == Model.CreatedByUserId.ToString();
+    var canEdit = currentUserId == game.CreatedByUserId.ToString();
 }
 
 <div class="d-flex align-items-center justify-content-between mb-4">
     <div>
-        <h1 class="mb-1">@Model.Name</h1>
-        <div class="text-muted">Hosted by @Model.CreatedByUser?.Name · @Model.CreatedAt.ToString("f")</div>
+        <h1 class="mb-1">@game.Name</h1>
+        <div class="text-muted">Hosted by @game.CreatedByUser?.Name · @game.CreatedAt.ToString("f")</div>
     </div>
     <div class="d-flex gap-2">
         @if (canEdit)
         {
-            <a class="btn btn-outline-secondary" asp-action="Edit" asp-route-id="@Model.Id">Edit</a>
+            <a class="btn btn-outline-secondary" asp-action="Edit" asp-route-id="@game.Id">Edit</a>
         }
         <a class="btn btn-link" asp-action="Index">Back to games</a>
     </div>
 </div>
 
-<div class="card">
+<div class="card mb-5">
     <div class="card-body">
         <h5 class="card-title">Description</h5>
-        <p class="card-text">@Model.Description</p>
+        <p class="card-text">@game.Description</p>
+    </div>
+</div>
+
+<div class="row g-4">
+    <div class="col-lg-4">
+        <div class="card h-100 shadow-sm">
+            <div class="card-body d-flex flex-column">
+                <div class="d-flex align-items-start justify-content-between mb-3">
+                    <div>
+                        <h5 class="mb-1">Characters</h5>
+                        <div class="text-muted small">Add heroes, edit them, and assign them to users.</div>
+                    </div>
+                    <span class="badge bg-secondary">@Model.CharacterCount</span>
+                </div>
+                <div class="flex-grow-1">
+                    @if (Model.CharacterCount == 0)
+                    {
+                        <p class="text-muted small mb-0">No characters have been created for this game yet.</p>
+                    }
+                    else
+                    {
+                        <ul class="list-unstyled small mb-0">
+                            @foreach (var character in Model.Characters)
+                            {
+                                <li class="mb-2">
+                                    <div class="fw-semibold">@character.Name</div>
+                                    <div class="text-muted">Owner: @(character.Owner?.Name ?? "Unassigned")</div>
+                                </li>
+                            }
+                            @if (Model.CharacterCount > Model.Characters.Count)
+                            {
+                                <li class="text-muted fst-italic">+ @(Model.CharacterCount - Model.Characters.Count) more character(s)</li>
+                            }
+                        </ul>
+                    }
+                </div>
+                <div class="d-flex flex-wrap gap-2 pt-3">
+                    <a class="btn btn-primary btn-sm" asp-controller="Characters" asp-action="Create" asp-route-gameId="@game.Id">Add character</a>
+                    <a class="btn btn-outline-secondary btn-sm" asp-controller="Characters" asp-action="Index" asp-route-gameId="@game.Id">Manage</a>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-4">
+        <div class="card h-100 shadow-sm">
+            <div class="card-body d-flex flex-column">
+                <div class="d-flex align-items-start justify-content-between mb-3">
+                    <div>
+                        <h5 class="mb-1">Items</h5>
+                        <div class="text-muted small">Create items and hand them out to characters.</div>
+                    </div>
+                    <span class="badge bg-secondary">@Model.ItemCount</span>
+                </div>
+                <div class="flex-grow-1">
+                    @if (Model.ItemCount == 0)
+                    {
+                        <p class="text-muted small mb-0">No loot yet. Start by creating your first item.</p>
+                    }
+                    else
+                    {
+                        <ul class="list-unstyled small mb-0">
+                            @foreach (var item in Model.Items)
+                            {
+                                <li class="mb-2">
+                                    <div class="fw-semibold">@item.Name</div>
+                                    <div class="text-muted">Category: @(item.Category?.Name ?? "Uncategorized")</div>
+                                </li>
+                            }
+                            @if (Model.ItemCount > Model.Items.Count)
+                            {
+                                <li class="text-muted fst-italic">+ @(Model.ItemCount - Model.Items.Count) more item(s)</li>
+                            }
+                        </ul>
+                    }
+                </div>
+                <div class="d-flex flex-wrap gap-2 pt-3">
+                    <a class="btn btn-primary btn-sm" asp-controller="Items" asp-action="Create" asp-route-gameId="@game.Id">Create item</a>
+                    <a class="btn btn-outline-secondary btn-sm" asp-controller="Items" asp-action="Index" asp-route-gameId="@game.Id">Manage inventory</a>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-4">
+        <div class="card h-100 shadow-sm">
+            <div class="card-body d-flex flex-column">
+                <div class="d-flex align-items-start justify-content-between mb-3">
+                    <div>
+                        <h5 class="mb-1">Categories</h5>
+                        <div class="text-muted small">Organize gear and tag items with categories.</div>
+                    </div>
+                    <span class="badge bg-secondary">@Model.CategoryCount</span>
+                </div>
+                <div class="flex-grow-1">
+                    @if (Model.CategoryCount == 0)
+                    {
+                        <p class="text-muted small mb-0">Set up a few categories so items can be grouped.</p>
+                    }
+                    else
+                    {
+                        <ul class="list-unstyled small mb-0">
+                            @foreach (var category in Model.Categories)
+                            {
+                                <li class="mb-2">
+                                    <div class="fw-semibold">@category.Name</div>
+                                    <div class="text-muted">@(category.Items?.Count ?? 0) item(s)</div>
+                                </li>
+                            }
+                            @if (Model.CategoryCount > Model.Categories.Count)
+                            {
+                                <li class="text-muted fst-italic">+ @(Model.CategoryCount - Model.Categories.Count) more categor@(Model.CategoryCount - Model.Categories.Count == 1 ? "y" : "ies")</li>
+                            }
+                        </ul>
+                    }
+                </div>
+                <div class="d-flex flex-wrap gap-2 pt-3">
+                    <a class="btn btn-primary btn-sm" asp-controller="Categories" asp-action="Create" asp-route-gameId="@game.Id">Create category</a>
+                    <a class="btn btn-outline-secondary btn-sm" asp-controller="Categories" asp-action="Index" asp-route-gameId="@game.Id">Manage categories</a>
+                </div>
+            </div>
+        </div>
     </div>
 </div>

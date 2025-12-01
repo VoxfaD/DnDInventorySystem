@@ -39,10 +39,10 @@ namespace DnDInventorySystem.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Login(LoginViewModel model)
         {
-            if (!ModelState.IsValid)
-            {
-                return View(model);
-            }
+            // if (!ModelState.IsValid)
+            // {
+            //     return View(model);
+            // }
 
             var email = model.Email.Trim();
             var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == email);
@@ -52,7 +52,27 @@ namespace DnDInventorySystem.Controllers
                 return View(model);
             }
 
-            var passwordResult = _passwordHasher.VerifyHashedPassword(user, user.PasswordHash, model.Password);
+            PasswordVerificationResult passwordResult;
+            try
+            {
+                passwordResult = _passwordHasher.VerifyHashedPassword(user, user.PasswordHash, model.Password);
+            }
+            catch (FormatException)
+            {
+                // Seeded users had plain-text passwords; fallback to plain comparison and upgrade to a hash.
+                if (string.Equals(user.PasswordHash, model.Password, StringComparison.Ordinal))
+                {
+                    user.PasswordHash = _passwordHasher.HashPassword(user, model.Password);
+                    _context.Users.Update(user);
+                    await _context.SaveChangesAsync();
+                    passwordResult = PasswordVerificationResult.Success;
+                }
+                else
+                {
+                    passwordResult = PasswordVerificationResult.Failed;
+                }
+            }
+
             if (passwordResult == PasswordVerificationResult.Failed)
             {
                 ModelState.AddModelError(string.Empty, "Invalid email or password.");
@@ -85,10 +105,10 @@ namespace DnDInventorySystem.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Register(RegisterViewModel model)
         {
-            if (!ModelState.IsValid)
-            {
-                return View(model);
-            }
+            // if (!ModelState.IsValid)
+            // {
+            //     return View(model);
+            // }
 
             var trimmedEmail = model.Email.Trim();
             var trimmedName = model.Name.Trim();

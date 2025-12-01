@@ -3,6 +3,8 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
+#pragma warning disable CA1814 // Prefer jagged arrays over multidimensional
+
 namespace DnDInventorySystem.Migrations
 {
     /// <inheritdoc />
@@ -255,6 +257,101 @@ namespace DnDInventorySystem.Migrations
                         principalTable: "Items",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.InsertData(
+                table: "Users",
+                columns: new[] { "Id", "Email", "Name", "PasswordHash" },
+                values: new object[,]
+                {
+                    { 1, "alice@example.com", "Alice", "Password123!" },
+                    { 2, "bob@example.com", "Bob", "Swordfish1!" }
+                });
+
+            migrationBuilder.InsertData(
+                table: "Games",
+                columns: new[] { "Id", "CreatedAt", "CreatedByUserId", "Description", "Name" },
+                values: new object[,]
+                {
+                    { 1, new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), 1, "Alice's campaign", "Stormreach" },
+                    { 2, new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), 2, "Bob's campaign", "Duskhaven" }
+                });
+
+            migrationBuilder.InsertData(
+                table: "Categories",
+                columns: new[] { "Id", "CreatedByUserId", "GameId", "Name" },
+                values: new object[,]
+                {
+                    { 1, 1, 1, "Weapons" },
+                    { 2, 1, 1, "Armor" },
+                    { 3, 1, 1, "Potions" },
+                    { 4, 1, 1, "Scrolls" },
+                    { 5, 1, 1, "Tools" },
+                    { 6, 1, 1, "Food" },
+                    { 7, 1, 1, "Trinkets" },
+                    { 8, 1, 1, "Quest Items" },
+                    { 9, 1, 1, "Materials" },
+                    { 10, 1, 1, "Misc" },
+                    { 101, 2, 2, "Weapons" },
+                    { 102, 2, 2, "Armor" },
+                    { 103, 2, 2, "Potions" },
+                    { 104, 2, 2, "Scrolls" },
+                    { 105, 2, 2, "Tools" },
+                    { 106, 2, 2, "Food" },
+                    { 107, 2, 2, "Trinkets" },
+                    { 108, 2, 2, "Quest Items" },
+                    { 109, 2, 2, "Materials" },
+                    { 110, 2, 2, "Misc" }
+                });
+
+            migrationBuilder.InsertData(
+                table: "Characters",
+                columns: new[] { "Id", "CreatedByUserId", "Description", "GameId", "Name", "OwnerUserId", "PhotoUrl" },
+                values: new object[,]
+                {
+                    { 1, 1, "Ranger", 1, "Aria", 1, "" },
+                    { 2, 1, "Cleric", 1, "Bram", 1, "" },
+                    { 3, 1, "Wizard", 1, "Celeste", 1, "" },
+                    { 101, 2, "Fighter", 2, "Dante", 2, "" },
+                    { 102, 2, "Druid", 2, "Elara", 2, "" },
+                    { 103, 2, "Rogue", 2, "Felix", 2, "" }
+                });
+
+            migrationBuilder.InsertData(
+                table: "Items",
+                columns: new[] { "Id", "CategoryId", "CreatedByUserId", "Description", "GameId", "Name", "PhotoUrl" },
+                values: new object[,]
+                {
+                    { 1, 1, 1, "Longsword description", 1, "Longsword", "" },
+                    { 2, 2, 1, "Shield description", 1, "Shield", "" },
+                    { 3, 3, 1, "Shortbow description", 1, "Shortbow", "" },
+                    { 4, 4, 1, "Dagger description", 1, "Dagger", "" },
+                    { 5, 5, 1, "Quarterstaff description", 1, "Quarterstaff", "" },
+                    { 6, 6, 1, "Healing Potion description", 1, "Healing Potion", "" },
+                    { 7, 7, 1, "Mana Potion description", 1, "Mana Potion", "" },
+                    { 8, 8, 1, "Rope description", 1, "Rope", "" },
+                    { 9, 9, 1, "Lockpick Set description", 1, "Lockpick Set", "" },
+                    { 10, 10, 1, "Torch description", 1, "Torch", "" },
+                    { 11, 1, 1, "Map description", 1, "Map", "" },
+                    { 12, 2, 1, "Silver Ring description", 1, "Silver Ring", "" },
+                    { 13, 3, 1, "Chain Shirt description", 1, "Chain Shirt", "" },
+                    { 14, 4, 1, "Bag of Holding description", 1, "Bag of Holding", "" },
+                    { 15, 5, 1, "Scroll of Fireball description", 1, "Scroll of Fireball", "" },
+                    { 101, 101, 2, "Battleaxe description", 2, "Battleaxe", "" },
+                    { 102, 102, 2, "Buckler description", 2, "Buckler", "" },
+                    { 103, 103, 2, "Crossbow description", 2, "Crossbow", "" },
+                    { 104, 104, 2, "Stiletto description", 2, "Stiletto", "" },
+                    { 105, 105, 2, "Wand description", 2, "Wand", "" },
+                    { 106, 106, 2, "Elixir of Health description", 2, "Elixir of Health", "" },
+                    { 107, 107, 2, "Stamina Draught description", 2, "Stamina Draught", "" },
+                    { 108, 108, 2, "Grappling Hook description", 2, "Grappling Hook", "" },
+                    { 109, 109, 2, "Thieves' Tools description", 2, "Thieves' Tools", "" },
+                    { 110, 110, 2, "Lantern description", 2, "Lantern", "" },
+                    { 111, 101, 2, "Compass description", 2, "Compass", "" },
+                    { 112, 102, 2, "Gold Amulet description", 2, "Gold Amulet", "" },
+                    { 113, 103, 2, "Scale Mail description", 2, "Scale Mail", "" },
+                    { 114, 104, 2, "Handy Haversack description", 2, "Handy Haversack", "" },
+                    { 115, 105, 2, "Scroll of Lightning description", 2, "Scroll of Lightning", "" }
                 });
 
             migrationBuilder.CreateIndex(

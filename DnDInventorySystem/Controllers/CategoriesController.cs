@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Claims;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -22,10 +23,29 @@ namespace DnDInventorySystem.Controllers
         }
 
         // GET: Categories
-        public async Task<IActionResult> Index()
+        public async Task<IActionResult> Index(int? gameId)
         {
-            var applicationDbContext = _context.Categories.Include(c => c.CreatedByUser).Include(c => c.Game);
-            return View(await applicationDbContext.ToListAsync());
+            if (!gameId.HasValue)
+            {
+                return NotFound();
+            }
+
+            var game = await GetAuthorizedGameAsync(gameId.Value);
+            if (game == null)
+            {
+                return NotFound();
+            }
+
+            var categories = await _context.Categories
+                .Include(c => c.CreatedByUser)
+                .Include(c => c.Game)
+                .Where(c => c.GameId == game.Id)
+                .OrderBy(c => c.Name)
+                .ToListAsync();
+
+            ViewData["CurrentGameId"] = game.Id;
+            ViewData["CurrentGameName"] = game.Name;
+            return View(categories);
         }
 
         // GET: Categories/Details/5
@@ -49,10 +69,20 @@ namespace DnDInventorySystem.Controllers
         }
 
         // GET: Categories/Create
-        public IActionResult Create()
+        public async Task<IActionResult> Create(int? gameId)
         {
-            ViewData["CreatedByUserId"] = new SelectList(_context.Users, "Id", "Id");
-            ViewData["GameId"] = new SelectList(_context.Games, "Id", "Name");
+            if (gameId == null)
+            {
+                return NotFound();
+            }
+
+            var game = await GetAuthorizedGameAsync(gameId.Value);
+            if (game == null)
+            {
+                return NotFound();
+            }
+
+            PopulateCategoryCreateView(game);
             return View();
         }
 
@@ -61,16 +91,25 @@ namespace DnDInventorySystem.Controllers
         // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create([Bind("Id,Name,GameId,CreatedByUserId")] Category category)
+        public async Task<IActionResult> Create(int gameId, [Bind("Name")] Category category)
         {
+            var game = await GetAuthorizedGameAsync(gameId);
+            if (game == null)
+            {
+                return NotFound();
+            }
+
+            category.GameId = game.Id;
+            category.CreatedByUserId = GetCurrentUserId();
+
             if (ModelState.IsValid)
             {
                 _context.Add(category);
                 await _context.SaveChangesAsync();
-                return RedirectToAction(nameof(Index));
+                return RedirectToAction("Details", "Games", new { id = game.Id });
             }
-            ViewData["CreatedByUserId"] = new SelectList(_context.Users, "Id", "Id", category.CreatedByUserId);
-            ViewData["GameId"] = new SelectList(_context.Games, "Id", "Name", category.GameId);
+
+            PopulateCategoryCreateView(game);
             return View(category);
         }
 
@@ -167,6 +206,32 @@ namespace DnDInventorySystem.Controllers
         private bool CategoryExists(int id)
         {
             return _context.Categories.Any(e => e.Id == id);
+        }
+
+        private int GetCurrentUserId()
+        {
+            var claimValue = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrEmpty(claimValue))
+            {
+                throw new InvalidOperationException("User identifier claim is missing.");
+            }
+
+            return int.Parse(claimValue);
+        }
+
+        private Task<Game> GetAuthorizedGameAsync(int gameId)
+        {
+            var userId = GetCurrentUserId();
+            return _context.Games
+                .FirstOrDefaultAsync(g => g.Id == gameId &&
+                    (g.CreatedByUserId == userId ||
+                     g.RolePersons.Any(rp => rp.UserId == userId)));
+        }
+
+        private void PopulateCategoryCreateView(Game game)
+        {
+            ViewData["CurrentGameId"] = game.Id;
+            ViewData["CurrentGameName"] = game.Name;
         }
     }
 }

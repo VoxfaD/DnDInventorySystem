@@ -327,4 +327,4 @@ C:\Users\Dita\Desktop\KVALIS\DnDInventorySystem\DnDInventorySystem\bin\Debug\net
 C:\Users\Dita\Desktop\KVALIS\DnDInventorySystem\DnDInventorySystem\bin\Debug\net10.0\tr\Microsoft.CodeAnalysis.Scripting.resources.dll
 C:\Users\Dita\Desktop\KVALIS\DnDInventorySystem\DnDInventorySystem\bin\Debug\net10.0\zh-Hans\Microsoft.CodeAnalysis.Scripting.resources.dll
 C:\Users\Dita\Desktop\KVALIS\DnDInventorySystem\DnDInventorySystem\bin\Debug\net10.0\zh-Hant\Microsoft.CodeAnalysis.Scripting.resources.dll
-C:\Users\Dita\Desktop\KVALIS\DnDInventorySystem\DnDInventorySystem\obj\Debug\net10.0\staticwebassets.upToDateCheck.txt
+C:\Users\Dita\Desktop\KVALIS\DnDInventorySystem\DnDInventorySystem\obj\Debug\net10.0\DnDInventorySystem.sourcelink.json

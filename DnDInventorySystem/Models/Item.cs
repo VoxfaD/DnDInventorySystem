@@ -15,13 +15,13 @@ namespace DnDInventorySystem.Models
         public string PhotoUrl { get; set; } = "";
 
         public int GameId { get; set; }
-        public Game Game { get; set; }
+        public Game? Game { get; set; }
 
         public int CreatedByUserId { get; set; }
-        public User CreatedByUser { get; set; }
+        public User? CreatedByUser { get; set; }
 
         public int? CategoryId { get; set; }
-        public Category Category { get; set; }
+        public Category? Category { get; set; }
 
         public ICollection<ItemCharacter> ItemCharacters { get; set; } = new List<ItemCharacter>();
         public ICollection<HistoryLog> HistoryLogs { get; set; } = new List<HistoryLog>();

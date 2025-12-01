@@ -15,17 +15,17 @@ namespace DnDInventorySystem.Models
         public string PhotoUrl { get; set; } = "";
 
         public int GameId { get; set; }
-        public Game Game { get; set; }
+        public Game? Game { get; set; }
 
         public int CreatedByUserId { get; set; }
 
         [ForeignKey(nameof(CreatedByUserId))]
-        public User CreatedByUser { get; set; }
+        public User? CreatedByUser { get; set; }
 
         public int OwnerUserId { get; set; }
 
         [ForeignKey(nameof(OwnerUserId))]
-        public User Owner { get; set; }
+        public User? Owner { get; set; }
 
         public ICollection<ItemCharacter> ItemCharacters { get; set; } = new List<ItemCharacter>();
     }

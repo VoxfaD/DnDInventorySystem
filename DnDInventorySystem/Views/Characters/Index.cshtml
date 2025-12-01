@@ -7,7 +7,17 @@
 <h1>Index</h1>
 
 <p>
-    <a asp-action="Create">Create New</a>
+@{
+    var currentGameId = ViewData["CurrentGameId"] as int?;
+}
+@if (currentGameId.HasValue)
+{
+    <a asp-action="Create" asp-route-gameId="@currentGameId">Create New</a>
+}
+else
+{
+    <span class="text-muted">Select a game to create a character.</span>
+}
 </p>
 <table class="table">
     <thead>

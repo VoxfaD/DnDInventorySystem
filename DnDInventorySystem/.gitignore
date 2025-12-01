@@ -1,0 +1,17 @@
+bin/
+obj/
+.vs/
+*.user
+*.rsuser
+*.suo
+*.cache
+*.log
+*.tmp
+Thumbs.db
+*.dbmdl
+*.dbproj.schemaview
+*.pfx
+publish/
+wwwroot/dist/
+wwwroot/lib/
+secrets.json
