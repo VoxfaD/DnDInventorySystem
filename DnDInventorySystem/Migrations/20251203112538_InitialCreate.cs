@@ -201,9 +201,11 @@ namespace DnDInventorySystem.Migrations
                 {
                     Id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
-                    ItemId = table.Column<int>(type: "int", nullable: false),
-                    UserId = table.Column<int>(type: "int", nullable: false),
+                    GameId = table.Column<int>(type: "int", nullable: false),
+                    ItemId = table.Column<int>(type: "int", nullable: true),
                     CharacterId = table.Column<int>(type: "int", nullable: true),
+                    CategoryId = table.Column<int>(type: "int", nullable: true),
+                    UserId = table.Column<int>(type: "int", nullable: false),
                     Action = table.Column<string>(type: "nvarchar(40)", maxLength: 40, nullable: false),
                     Timestamp = table.Column<DateTime>(type: "datetime2", nullable: false),
                     Details = table.Column<string>(type: "nvarchar(max)", nullable: false)
@@ -212,11 +214,23 @@ namespace DnDInventorySystem.Migrations
                 {
                     table.PrimaryKey("PK_HistoryLogs", x => x.Id);
                     table.ForeignKey(
+                        name: "FK_HistoryLogs_Categories_CategoryId",
+                        column: x => x.CategoryId,
+                        principalTable: "Categories",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.SetNull);
+                    table.ForeignKey(
                         name: "FK_HistoryLogs_Characters_CharacterId",
                         column: x => x.CharacterId,
                         principalTable: "Characters",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_HistoryLogs_Games_GameId",
+                        column: x => x.GameId,
+                        principalTable: "Games",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
                         name: "FK_HistoryLogs_Items_ItemId",
                         column: x => x.ItemId,
@@ -274,7 +288,7 @@ namespace DnDInventorySystem.Migrations
                 values: new object[,]
                 {
                     { 1, new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), 1, "Alice's campaign", "Stormreach" },
-                    { 2, new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), 2, "Bob's campaign", "Duskhaven" }
+                    { 2, new DateTime(2024, 1, 2, 0, 0, 0, 0, DateTimeKind.Utc), 2, "Bob's campaign", "Duskhaven" }
                 });
 
             migrationBuilder.InsertData(
@@ -385,9 +399,19 @@ namespace DnDInventorySystem.Migrations
                 column: "CreatedByUserId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_HistoryLogs_CategoryId",
+                table: "HistoryLogs",
+                column: "CategoryId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_HistoryLogs_CharacterId",
                 table: "HistoryLogs",
                 column: "CharacterId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_HistoryLogs_GameId",
+                table: "HistoryLogs",
+                column: "GameId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_HistoryLogs_ItemId",

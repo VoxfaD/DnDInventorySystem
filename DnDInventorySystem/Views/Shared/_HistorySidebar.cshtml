@@ -1,0 +1,27 @@
+@model DnDInventorySystem.ViewModels.HistorySidebarViewModel
+
+<div id="history-sidebar" class="history-sidebar collapsed">
+    <div class="history-header d-flex justify-content-between align-items-center">
+        <div class="fw-semibold">History</div>
+        <button type="button" class="btn btn-sm btn-outline-secondary history-close">✕</button>
+    </div>
+    <div class="history-body">
+        @if (Model?.Logs == null || !Model.Logs.Any())
+        {
+            <div class="text-muted small">No history yet.</div>
+        }
+        else
+        {
+            <ul class="list-unstyled mb-0 history-list">
+                @foreach (var log in Model.Logs.OrderByDescending(l => l.Timestamp))
+                {
+                    <li class="history-entry">
+                        <div class="small fw-semibold">@log.Details</div>
+                        <div class="text-muted tiny">@log.Timestamp.ToLocalTime().ToString("g")</div>
+                    </li>
+                }
+            </ul>
+        }
+    </div>
+</div>
+<button id="history-toggle" class="btn btn-primary history-toggle">History</button>

@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
+using DnDInventorySystem;
 using DnDInventorySystem.Data;
 using DnDInventorySystem.Models;
 
@@ -16,10 +17,12 @@ namespace DnDInventorySystem.Controllers
     public class ItemsController : Controller
     {
         private readonly ApplicationDbContext _context;
+        private readonly HistoryLogService _historyLog;
 
-        public ItemsController(ApplicationDbContext context)
+        public ItemsController(ApplicationDbContext context, HistoryLogService historyLog)
         {
             _context = context;
+            _historyLog = historyLog;
         }
 
         // GET: Items
@@ -39,6 +42,7 @@ namespace DnDInventorySystem.Controllers
                     .Where(g => g.Id == gameId.Value)
                     .Select(g => g.Name)
                     .FirstOrDefaultAsync();
+                await SetHistorySidebarAsync(gameId.Value);
             }
 
             return View(await itemsQuery.ToListAsync());
@@ -62,6 +66,7 @@ namespace DnDInventorySystem.Controllers
                 return NotFound();
             }
 
+            await SetHistorySidebarAsync(item.GameId);
             return View(item);
         }
 
@@ -80,6 +85,7 @@ namespace DnDInventorySystem.Controllers
             }
 
             await PopulateItemCreateViewAsync(game, returnCharacterId);
+            await SetHistorySidebarAsync(game.Id);
             return View();
         }
 
@@ -108,11 +114,14 @@ namespace DnDInventorySystem.Controllers
 
             item.GameId = game.Id;
             item.CreatedByUserId = GetCurrentUserId();
+            item.PhotoUrl = item.PhotoUrl ?? string.Empty;
 
             if (ModelState.IsValid)
             {
                 _context.Add(item);
                 await _context.SaveChangesAsync();
+                var actor = await GetCurrentUserNameAsync();
+                await LogAsync(game.Id, "ItemCreated", $"Item {item.Name} created by {actor}", itemId: item.Id);
                 if (returnCharacterId.HasValue)
                 {
                     return RedirectToAction("AssignItems", "Characters", new { id = returnCharacterId.Value });
@@ -121,6 +130,7 @@ namespace DnDInventorySystem.Controllers
                 return RedirectToAction("Details", "Games", new { id = game.Id });
             }
             await PopulateItemCreateViewAsync(game, returnCharacterId);
+            await SetHistorySidebarAsync(game.Id);
             return View(item);
         }
 
@@ -141,6 +151,7 @@ namespace DnDInventorySystem.Controllers
                 return NotFound();
             }
             await PopulateItemEditViewAsync(item);
+            await SetHistorySidebarAsync(item.GameId);
             return View(item);
         }
 
@@ -177,12 +188,19 @@ namespace DnDInventorySystem.Controllers
 
             if (ModelState.IsValid)
             {
+                var actor = await GetCurrentUserNameAsync();
+                var oldName = item.Name;
                 item.Name = formItem.Name;
                 item.Description = formItem.Description;
-                item.PhotoUrl = formItem.PhotoUrl;
+                item.PhotoUrl = formItem.PhotoUrl ?? string.Empty;
                 item.CategoryId = formItem.CategoryId;
                 await _context.SaveChangesAsync();
-                return RedirectToAction(nameof(Index));
+                await LogAsync(item.GameId, "ItemEdited", $"Item {item.Name} edited by {actor}", itemId: item.Id);
+                if (!string.Equals(oldName, item.Name, StringComparison.Ordinal))
+                {
+                    // name change is still covered by edited message; keep simple
+                }
+                return RedirectToAction(nameof(Index), new { gameId = item.GameId });
             }
 
             await PopulateItemEditViewAsync(item);
@@ -190,6 +208,7 @@ namespace DnDInventorySystem.Controllers
             item.Description = formItem.Description;
             item.PhotoUrl = formItem.PhotoUrl;
             item.CategoryId = formItem.CategoryId;
+            await SetHistorySidebarAsync(item.GameId);
             return View(item);
         }
 
@@ -211,6 +230,7 @@ namespace DnDInventorySystem.Controllers
                 return NotFound();
             }
 
+            await SetHistorySidebarAsync(item.GameId);
             return View(item);
         }
 
@@ -222,27 +242,18 @@ namespace DnDInventorySystem.Controllers
             var item = await _context.Items.FindAsync(id);
             if (item != null)
             {
+                var actor = await GetCurrentUserNameAsync();
+                await LogAsync(item.GameId, "ItemDeleted", $"Item {item.Name} deleted by {actor}", itemId: item.Id);
                 _context.Items.Remove(item);
             }
 
             await _context.SaveChangesAsync();
-            return RedirectToAction(nameof(Index));
+            return RedirectToAction(nameof(Index), new { gameId = item?.GameId });
         }
 
         private bool ItemExists(int id)
         {
             return _context.Items.Any(e => e.Id == id);
-        }
-
-        private int GetCurrentUserId()
-        {
-            var claimValue = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            if (string.IsNullOrEmpty(claimValue))
-            {
-                throw new InvalidOperationException("User identifier claim is missing.");
-            }
-
-            return int.Parse(claimValue);
         }
 
         private Task<Game> GetAuthorizedGameAsync(int gameId)
@@ -280,6 +291,41 @@ namespace DnDInventorySystem.Controllers
             ViewData["CategoryId"] = new SelectList(categories, "Id", "Name", item.CategoryId);
             ViewData["GameName"] = item.Game?.Name ?? "Unknown game";
             ViewData["CreatorName"] = item.CreatedByUser?.Name ?? "Unknown user";
+        }
+
+        private int GetCurrentUserId()
+        {
+            var claimValue = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrEmpty(claimValue))
+            {
+                throw new InvalidOperationException("User identifier claim is missing.");
+            }
+
+            return int.Parse(claimValue);
+        }
+
+        private async Task<string> GetCurrentUserNameAsync()
+        {
+            var userId = GetCurrentUserId();
+            var name = await _context.Users
+                .Where(u => u.Id == userId)
+                .Select(u => u.Name)
+                .FirstOrDefaultAsync();
+            return string.IsNullOrWhiteSpace(name) ? "Unknown user" : name;
+        }
+
+        private Task LogAsync(int gameId, string action, string details, int? characterId = null, int? itemId = null, int? categoryId = null)
+        {
+            return _historyLog.LogAsync(gameId, GetCurrentUserId(), action, details, characterId, itemId, categoryId);
+        }
+
+        private async Task SetHistorySidebarAsync(int gameId)
+        {
+            ViewBag.HistorySidebar = new ViewModels.HistorySidebarViewModel
+            {
+                GameId = gameId,
+                Logs = await _historyLog.GetRecentAsync(gameId)
+            };
         }
     }
 }

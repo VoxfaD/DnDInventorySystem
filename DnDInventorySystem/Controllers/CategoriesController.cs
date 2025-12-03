@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
+using DnDInventorySystem;
 using DnDInventorySystem.Data;
 using DnDInventorySystem.Models;
 
@@ -16,10 +17,12 @@ namespace DnDInventorySystem.Controllers
     public class CategoriesController : Controller
     {
         private readonly ApplicationDbContext _context;
+        private readonly HistoryLogService _historyLog;
 
-        public CategoriesController(ApplicationDbContext context)
+        public CategoriesController(ApplicationDbContext context, HistoryLogService historyLog)
         {
             _context = context;
+            _historyLog = historyLog;
         }
 
         // GET: Categories
@@ -45,6 +48,7 @@ namespace DnDInventorySystem.Controllers
 
             ViewData["CurrentGameId"] = game.Id;
             ViewData["CurrentGameName"] = game.Name;
+            await SetHistorySidebarAsync(game.Id);
             return View(categories);
         }
 
@@ -65,6 +69,7 @@ namespace DnDInventorySystem.Controllers
                 return NotFound();
             }
 
+            await SetHistorySidebarAsync(category.GameId);
             return View(category);
         }
 
@@ -83,6 +88,7 @@ namespace DnDInventorySystem.Controllers
             }
 
             PopulateCategoryCreateView(game);
+            await SetHistorySidebarAsync(game.Id);
             return View();
         }
 
@@ -106,10 +112,13 @@ namespace DnDInventorySystem.Controllers
             {
                 _context.Add(category);
                 await _context.SaveChangesAsync();
-                return RedirectToAction("Details", "Games", new { id = game.Id });
+                var actor = await GetCurrentUserNameAsync();
+                await LogAsync(game.Id, "CategoryCreated", $"Category {category.Name} created by {actor}", categoryId: category.Id);
+                return RedirectToAction(nameof(Index), new { gameId = game.Id });
             }
 
             PopulateCategoryCreateView(game);
+            await SetHistorySidebarAsync(game.Id);
             return View(category);
         }
 
@@ -126,8 +135,7 @@ namespace DnDInventorySystem.Controllers
             {
                 return NotFound();
             }
-            ViewData["CreatedByUserId"] = new SelectList(_context.Users, "Id", "Id", category.CreatedByUserId);
-            ViewData["GameId"] = new SelectList(_context.Games, "Id", "Name", category.GameId);
+            await SetHistorySidebarAsync(category.GameId);
             return View(category);
         }
 
@@ -136,9 +144,9 @@ namespace DnDInventorySystem.Controllers
         // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int id, [Bind("Id,Name,GameId,CreatedByUserId")] Category category)
+        public async Task<IActionResult> Edit(int id, [Bind("Id,Name,GameId,CreatedByUserId")] Category formCategory)
         {
-            if (id != category.Id)
+            if (id != formCategory.Id)
             {
                 return NotFound();
             }
@@ -147,26 +155,42 @@ namespace DnDInventorySystem.Controllers
             {
                 try
                 {
-                    _context.Update(category);
+                    var category = await _context.Categories.FirstOrDefaultAsync(c => c.Id == id);
+                    if (category == null)
+                    {
+                        return NotFound();
+                    }
+
+                    var oldName = category.Name;
+                    category.Name = formCategory.Name;
                     await _context.SaveChangesAsync();
+
+                    var actor = await GetCurrentUserNameAsync();
+                    if (!string.Equals(oldName, category.Name, StringComparison.Ordinal))
+                    {
+                        await LogAsync(category.GameId, "CategoryRenamed", $"Category {oldName} changed the name to {category.Name} by {actor}", categoryId: category.Id);
+                    }
+                    else
+                    {
+                        await LogAsync(category.GameId, "CategoryEdited", $"Category {category.Name} edited by {actor}", categoryId: category.Id);
+                    }
                 }
                 catch (DbUpdateConcurrencyException)
                 {
-                    if (!CategoryExists(category.Id))
+                    if (!CategoryExists(formCategory.Id))
                     {
                         return NotFound();
                     }
                     else
-                    {
-                        throw;
-                    }
+                {
+                    throw;
                 }
-                return RedirectToAction(nameof(Index));
             }
-            ViewData["CreatedByUserId"] = new SelectList(_context.Users, "Id", "Id", category.CreatedByUserId);
-            ViewData["GameId"] = new SelectList(_context.Games, "Id", "Name", category.GameId);
-            return View(category);
+            return RedirectToAction(nameof(Index), new { gameId = formCategory.GameId });
         }
+        await SetHistorySidebarAsync(formCategory.GameId);
+        return View(formCategory);
+    }
 
         // GET: Categories/Delete/5
         public async Task<IActionResult> Delete(int? id)
@@ -193,14 +217,16 @@ namespace DnDInventorySystem.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
-            var category = await _context.Categories.FindAsync(id);
+            var category = await _context.Categories.FirstOrDefaultAsync(c => c.Id == id);
             if (category != null)
             {
+                var actor = await GetCurrentUserNameAsync();
+                await LogAsync(category.GameId, "CategoryDeleted", $"Category {category.Name} deleted by {actor}", categoryId: category.Id);
                 _context.Categories.Remove(category);
             }
 
             await _context.SaveChangesAsync();
-            return RedirectToAction(nameof(Index));
+            return RedirectToAction(nameof(Index), new { gameId = category?.GameId });
         }
 
         private bool CategoryExists(int id)
@@ -217,6 +243,30 @@ namespace DnDInventorySystem.Controllers
             }
 
             return int.Parse(claimValue);
+        }
+
+        private async Task<string> GetCurrentUserNameAsync()
+        {
+            var userId = GetCurrentUserId();
+            var name = await _context.Users
+                .Where(u => u.Id == userId)
+                .Select(u => u.Name)
+                .FirstOrDefaultAsync();
+            return string.IsNullOrWhiteSpace(name) ? "Unknown user" : name;
+        }
+
+        private Task LogAsync(int gameId, string action, string details, int? characterId = null, int? itemId = null, int? categoryId = null)
+        {
+            return _historyLog.LogAsync(gameId, GetCurrentUserId(), action, details, characterId, itemId, categoryId);
+        }
+
+        private async Task SetHistorySidebarAsync(int gameId)
+        {
+            ViewBag.HistorySidebar = new ViewModels.HistorySidebarViewModel
+            {
+                GameId = gameId,
+                Logs = await _historyLog.GetRecentAsync(gameId)
+            };
         }
 
         private Task<Game> GetAuthorizedGameAsync(int gameId)

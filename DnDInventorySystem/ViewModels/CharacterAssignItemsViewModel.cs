@@ -1,10 +1,14 @@
 using System.Collections.Generic;
 using DnDInventorySystem.Models;
+using Microsoft.AspNetCore.Mvc.ModelBinding.Validation;
 
 namespace DnDInventorySystem.ViewModels
 {
     public class CharacterAssignItemsViewModel
     {
+        public int CharacterId { get; set; }
+
+        [ValidateNever]
         public Character Character { get; set; }
         public List<AssignItemRow> Assignments { get; set; } = new();
     }

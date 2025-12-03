@@ -12,7 +12,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace DnDInventorySystem.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20251201133145_InitialCreate")]
+    [Migration("20251203112538_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -339,7 +339,7 @@ namespace DnDInventorySystem.Migrations
                         new
                         {
                             Id = 2,
-                            CreatedAt = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            CreatedAt = new DateTime(2024, 1, 2, 0, 0, 0, 0, DateTimeKind.Utc),
                             CreatedByUserId = 2,
                             Description = "Bob's campaign",
                             Name = "Duskhaven"
@@ -359,6 +359,9 @@ namespace DnDInventorySystem.Migrations
                         .HasMaxLength(40)
                         .HasColumnType("nvarchar(40)");
 
+                    b.Property<int?>("CategoryId")
+                        .HasColumnType("int");
+
                     b.Property<int?>("CharacterId")
                         .HasColumnType("int");
 
@@ -366,7 +369,10 @@ namespace DnDInventorySystem.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<int>("ItemId")
+                    b.Property<int>("GameId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("ItemId")
                         .HasColumnType("int");
 
                     b.Property<DateTime>("Timestamp")
@@ -377,7 +383,11 @@ namespace DnDInventorySystem.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("CategoryId");
+
                     b.HasIndex("CharacterId");
+
+                    b.HasIndex("GameId");
 
                     b.HasIndex("ItemId");
 
@@ -907,16 +917,26 @@ namespace DnDInventorySystem.Migrations
 
             modelBuilder.Entity("DnDInventorySystem.Models.HistoryLog", b =>
                 {
+                    b.HasOne("DnDInventorySystem.Models.Category", "Category")
+                        .WithMany()
+                        .HasForeignKey("CategoryId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.HasOne("DnDInventorySystem.Models.Character", "Character")
                         .WithMany()
                         .HasForeignKey("CharacterId")
                         .OnDelete(DeleteBehavior.Restrict);
 
+                    b.HasOne("DnDInventorySystem.Models.Game", "Game")
+                        .WithMany("HistoryLogs")
+                        .HasForeignKey("GameId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
                     b.HasOne("DnDInventorySystem.Models.Item", "Item")
                         .WithMany("HistoryLogs")
                         .HasForeignKey("ItemId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("User", "User")
                         .WithMany()
@@ -924,7 +944,11 @@ namespace DnDInventorySystem.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.Navigation("Category");
+
                     b.Navigation("Character");
+
+                    b.Navigation("Game");
 
                     b.Navigation("Item");
 
@@ -1017,6 +1041,8 @@ namespace DnDInventorySystem.Migrations
                     b.Navigation("Categories");
 
                     b.Navigation("Characters");
+
+                    b.Navigation("HistoryLogs");
 
                     b.Navigation("Items");
 

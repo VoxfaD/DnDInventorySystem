@@ -26,8 +26,8 @@ namespace DnDInventorySystem.Data
             var user1 = new User { Id = 1, Name = "Alice", Email = "alice@example.com", PasswordHash = "Password123!" };
             var user2 = new User { Id = 2, Name = "Bob",   Email = "bob@example.com",   PasswordHash = "Swordfish1!" };
 
-            var game1 = new Game { Id = 1, Name = "Stormreach", Description = "Alice's campaign", CreatedByUserId = 1 };
-            var game2 = new Game { Id = 2, Name = "Duskhaven",  Description = "Bob's campaign",   CreatedByUserId = 2 };
+            var game1 = new Game { Id = 1, Name = "Stormreach", Description = "Alice's campaign", CreatedByUserId = 1, CreatedAt = new DateTime(2024, 1, 1, 0, 0, 0, DateTimeKind.Utc) };
+            var game2 = new Game { Id = 2, Name = "Duskhaven",  Description = "Bob's campaign",   CreatedByUserId = 2, CreatedAt = new DateTime(2024, 1, 2, 0, 0, 0, DateTimeKind.Utc) };
 
             string[] categoryNames = { "Weapons","Armor","Potions","Scrolls","Tools","Food","Trinkets","Quest Items","Materials","Misc" };
             var categories = categoryNames.Select((n, i) => new Category { Id = i + 1, Name = n, GameId = 1, CreatedByUserId = 1 })
@@ -188,6 +188,12 @@ namespace DnDInventorySystem.Data
 
             // HISTORY LOG
             modelBuilder.Entity<HistoryLog>()
+                .HasOne(h => h.Game)
+                .WithMany(g => g.HistoryLogs)
+                .HasForeignKey(h => h.GameId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<HistoryLog>()
                 .HasOne(h => h.Item)
                 .WithMany(i => i.HistoryLogs)
                 .HasForeignKey(h => h.ItemId)
@@ -204,6 +210,12 @@ namespace DnDInventorySystem.Data
                 .WithMany()
                 .HasForeignKey(h => h.CharacterId)
                 .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<HistoryLog>()
+                .HasOne(h => h.Category)
+                .WithMany()
+                .HasForeignKey(h => h.CategoryId)
+                .OnDelete(DeleteBehavior.SetNull);
         }
     }
 }

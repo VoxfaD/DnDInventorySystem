@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
+using DnDInventorySystem;
 using DnDInventorySystem.Data;
 using DnDInventorySystem.Models;
 using DnDInventorySystem.ViewModels;
@@ -17,10 +18,12 @@ namespace DnDInventorySystem.Controllers
     public class CharactersController : Controller
     {
         private readonly ApplicationDbContext _context;
+        private readonly HistoryLogService _historyLog;
 
-        public CharactersController(ApplicationDbContext context)
+        public CharactersController(ApplicationDbContext context, HistoryLogService historyLog)
         {
             _context = context;
+            _historyLog = historyLog;
         }
 
         // GET: Characters
@@ -60,6 +63,7 @@ namespace DnDInventorySystem.Controllers
             }
 
             var viewModel = await BuildCharacterInventoryViewModel(character);
+            await SetHistorySidebarAsync(character.GameId);
             return View(viewModel);
         }
 
@@ -78,6 +82,7 @@ namespace DnDInventorySystem.Controllers
             }
 
             await PopulateCharacterCreateViewAsync(game);
+            await SetHistorySidebarAsync(game.Id);
             return View();
         }
 
@@ -100,15 +105,24 @@ namespace DnDInventorySystem.Controllers
 
             character.GameId = game.Id;
             character.CreatedByUserId = GetCurrentUserId();
+            character.PhotoUrl = character.PhotoUrl ?? string.Empty;
 
             if (ModelState.IsValid)
             {
                 _context.Add(character);
                 await _context.SaveChangesAsync();
+                var actorName = await GetCurrentUserNameAsync();
+                await LogAsync(game.Id, "CharacterCreated", $"Character {character.Name} created by {actorName}", characterId: character.Id);
+                if (character.OwnerUserId > 0)
+                {
+                    var ownerName = validOwners.FirstOrDefault(o => o.Id == character.OwnerUserId)?.Name ?? "User";
+                    await LogAsync(game.Id, "CharacterAssignedOwner", $"Character {character.Name} assigned to {ownerName} by {actorName}", characterId: character.Id);
+                }
                 return RedirectToAction("Details", "Games", new { id = game.Id });
             }
 
             await PopulateCharacterCreateViewAsync(game, character.OwnerUserId, validOwners);
+            await SetHistorySidebarAsync(game.Id);
             return View(character);
         }
 
@@ -127,6 +141,7 @@ namespace DnDInventorySystem.Controllers
             }
 
             await PopulateCharacterEditViewAsync(character, character.OwnerUserId);
+            await SetHistorySidebarAsync(character.GameId);
             return View(character);
         }
 
@@ -154,11 +169,20 @@ namespace DnDInventorySystem.Controllers
 
             if (ModelState.IsValid)
             {
+                var actorName = await GetCurrentUserNameAsync();
+                var previousOwnerId = character.OwnerUserId;
+
                 character.Name = formCharacter.Name;
                 character.Description = formCharacter.Description;
-                character.PhotoUrl = formCharacter.PhotoUrl;
+                character.PhotoUrl = formCharacter.PhotoUrl ?? string.Empty;
                 character.OwnerUserId = formCharacter.OwnerUserId;
                 await _context.SaveChangesAsync();
+                await LogAsync(character.GameId, "CharacterEdited", $"Character {character.Name} edited by {actorName}", characterId: character.Id);
+                if (previousOwnerId != formCharacter.OwnerUserId)
+                {
+                    var newOwner = validOwners.FirstOrDefault(o => o.Id == formCharacter.OwnerUserId)?.Name ?? "User";
+                    await LogAsync(character.GameId, "CharacterAssignedOwner", $"Character {character.Name} assigned to {newOwner} by {actorName}", characterId: character.Id);
+                }
                 return RedirectToAction(nameof(Index), new { gameId = character.GameId });
             }
 
@@ -167,6 +191,7 @@ namespace DnDInventorySystem.Controllers
             character.Description = formCharacter.Description;
             character.PhotoUrl = formCharacter.PhotoUrl;
             character.OwnerUserId = formCharacter.OwnerUserId;
+            await SetHistorySidebarAsync(character.GameId);
             return View(character);
         }
 
@@ -196,14 +221,82 @@ namespace DnDInventorySystem.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
-            var character = await _context.Characters.FindAsync(id);
+            var character = await _context.Characters.FirstOrDefaultAsync(c => c.Id == id);
             if (character != null)
             {
+                var actorName = await GetCurrentUserNameAsync();
+                await LogAsync(character.GameId, "CharacterDeleted", $"Character {character.Name} deleted by {actorName}", characterId: character.Id);
                 _context.Characters.Remove(character);
             }
 
             await _context.SaveChangesAsync();
             return RedirectToAction(nameof(Index));
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> UpdateInventory(int characterId, int entryId, int quantity, bool isEquipped)
+        {
+            var character = await GetAuthorizedCharacterAsync(characterId);
+            if (character == null)
+            {
+                return NotFound();
+            }
+
+            var entry = await _context.ItemCharacters
+                .FirstOrDefaultAsync(ic => ic.Id == entryId && ic.CharacterId == character.Id);
+            if (entry == null)
+            {
+                return NotFound();
+            }
+
+            entry.Quantity = quantity < 1 ? 1 : quantity;
+            entry.IsEquipped = isEquipped;
+            await _context.SaveChangesAsync();
+
+            return RedirectToAction(nameof(Details), new { id = character.Id });
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> UpdateInventoryBulk(int characterId, List<InventoryUpdateRow> updates)
+        {
+            var character = await GetAuthorizedCharacterAsync(characterId);
+            if (character == null)
+            {
+                return NotFound();
+            }
+
+            if (updates == null || updates.Count == 0)
+            {
+                return RedirectToAction(nameof(Details), new { id = character.Id });
+            }
+
+            var entryIds = updates.Select(u => u.EntryId).ToList();
+            var entries = await _context.ItemCharacters
+                .Where(ic => ic.CharacterId == character.Id && entryIds.Contains(ic.Id))
+                .Include(ic => ic.Item)
+                .ToListAsync();
+            var actorName = await GetCurrentUserNameAsync();
+
+            foreach (var update in updates)
+            {
+                var entry = entries.FirstOrDefault(e => e.Id == update.EntryId);
+                if (entry == null)
+                {
+                    continue;
+                }
+
+                entry.Quantity = update.Quantity < 1 ? 1 : update.Quantity;
+                entry.IsEquipped = update.IsEquipped;
+                if (entry.Item != null)
+                {
+                    await LogAsync(character.GameId, "ItemEdited", $"Character's {entry.Item.Name} edited by {actorName}", characterId: character.Id, itemId: entry.ItemId);
+                }
+            }
+
+            await _context.SaveChangesAsync();
+            return RedirectToAction(nameof(Details), new { id = character.Id });
         }
 
         [HttpPost]
@@ -270,7 +363,7 @@ namespace DnDInventorySystem.Controllers
                 .ToListAsync();
         }
 
-        private async Task PopulateCharacterCreateViewAsync(Game game, int? selectedOwnerId = null, IEnumerable<User> owners = null)
+        private async Task PopulateCharacterCreateViewAsync(Game game, int? selectedOwnerId = null, IEnumerable<User>? owners = null)
         {
             var ownerList = owners ?? await GetGameUsersAsync(game);
             ViewData["OwnerUserId"] = new SelectList(ownerList, "Id", "Name", selectedOwnerId);
@@ -278,7 +371,7 @@ namespace DnDInventorySystem.Controllers
             ViewData["CurrentGameName"] = game.Name;
         }
 
-        private async Task PopulateCharacterEditViewAsync(Character character, int? selectedOwnerId = null, IEnumerable<User> owners = null)
+        private async Task PopulateCharacterEditViewAsync(Character character, int? selectedOwnerId = null, IEnumerable<User>? owners = null)
         {
             var ownerList = owners ?? await GetGameUsersAsync(character.Game);
             ViewData["OwnerUserId"] = new SelectList(ownerList, "Id", "Name", selectedOwnerId ?? character.OwnerUserId);
@@ -294,6 +387,7 @@ namespace DnDInventorySystem.Controllers
             }
 
             var viewModel = await BuildCharacterAssignItemsViewModel(character);
+            await SetHistorySidebarAsync(character.GameId);
             return View(viewModel);
         }
 
@@ -302,7 +396,12 @@ namespace DnDInventorySystem.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> AssignItems(CharacterAssignItemsViewModel model)
         {
-            var character = await GetAuthorizedCharacterAsync(model.Character.Id);
+            if (model.CharacterId == 0)
+            {
+                return NotFound();
+            }
+
+            var character = await GetAuthorizedCharacterAsync(model.CharacterId);
             if (character == null)
             {
                 return NotFound();
@@ -316,8 +415,15 @@ namespace DnDInventorySystem.Controllers
             if (!ModelState.IsValid)
             {
                 var vm = await BuildCharacterAssignItemsViewModel(character);
+                await SetHistorySidebarAsync(character.GameId);
                 return View(vm);
             }
+
+            var actorName = await GetCurrentUserNameAsync();
+            var selectedIds = model.Assignments.Where(a => a.Selected).Select(a => a.ItemId).ToList();
+            var itemNames = await _context.Items
+                .Where(i => selectedIds.Contains(i.Id))
+                .ToDictionaryAsync(i => i.Id, i => i.Name);
 
             foreach (var row in model.Assignments.Where(a => a.Selected))
             {
@@ -344,11 +450,20 @@ namespace DnDInventorySystem.Controllers
                         Quantity = row.Quantity,
                         IsEquipped = row.IsEquipped
                     });
+                    var itemName = itemNames.TryGetValue(row.ItemId, out var nm1) ? nm1 : "Item";
+                    await LogAsync(character.GameId, "ItemAssigned", $"Character {character.Name} assigned {itemName} by {actorName}", characterId: character.Id, itemId: row.ItemId);
                 }
                 else
                 {
+                    var previousQuantity = existing.Quantity;
+                    var previousEquipped = existing.IsEquipped;
                     existing.Quantity = row.Quantity;
                     existing.IsEquipped = row.IsEquipped;
+                    if (previousQuantity != row.Quantity || previousEquipped != row.IsEquipped)
+                    {
+                        var itemName = itemNames.TryGetValue(row.ItemId, out var nm2) ? nm2 : "Item";
+                        await LogAsync(character.GameId, "ItemEdited", $"Character's {itemName} edited by {actorName}", characterId: character.Id, itemId: row.ItemId);
+                    }
                 }
             }
 
@@ -385,12 +500,22 @@ namespace DnDInventorySystem.Controllers
             return new CharacterInventoryViewModel
             {
                 Character = character,
-                Inventory = inventory
+                Inventory = inventory,
+                Updates = inventory.Select(ic => new InventoryUpdateRow
+                {
+                    EntryId = ic.Id,
+                    Quantity = ic.Quantity,
+                    IsEquipped = ic.IsEquipped
+                }).ToList()
             };
         }
 
         private async Task<CharacterAssignItemsViewModel> BuildCharacterAssignItemsViewModel(Character character)
         {
+            var existingAssignments = await _context.ItemCharacters
+                .Where(ic => ic.CharacterId == character.Id)
+                .ToListAsync();
+
             var items = await _context.Items
                 .Where(i => i.GameId == character.GameId)
                 .OrderBy(i => i.Name)
@@ -400,19 +525,44 @@ namespace DnDInventorySystem.Controllers
             var assignments = items.Select(i => new AssignItemRow
             {
                 ItemId = i.Id,
-                ItemName = i.Name,
-                CategoryName = i.Category?.Name,
-                Description = i.Description,
-                Quantity = 1,
-                IsEquipped = true,
-                Selected = false
+                ItemName = i.Name ?? string.Empty,
+                CategoryName = i.Category?.Name ?? string.Empty,
+                Description = i.Description ?? string.Empty,
+                Quantity = existingAssignments.FirstOrDefault(ic => ic.ItemId == i.Id)?.Quantity ?? 1,
+                IsEquipped = existingAssignments.FirstOrDefault(ic => ic.ItemId == i.Id)?.IsEquipped ?? true,
+                Selected = existingAssignments.Any(ic => ic.ItemId == i.Id)
             }).ToList();
 
             return new CharacterAssignItemsViewModel
             {
+                CharacterId = character.Id,
                 Character = character,
                 Assignments = assignments
             };
+        }
+
+        private async Task SetHistorySidebarAsync(int gameId)
+        {
+            ViewBag.HistorySidebar = new HistorySidebarViewModel
+            {
+                GameId = gameId,
+                Logs = await _historyLog.GetRecentAsync(gameId)
+            };
+        }
+
+        private async Task<string> GetCurrentUserNameAsync()
+        {
+            var userId = GetCurrentUserId();
+            var name = await _context.Users
+                .Where(u => u.Id == userId)
+                .Select(u => u.Name)
+                .FirstOrDefaultAsync();
+            return string.IsNullOrWhiteSpace(name) ? "Unknown user" : name;
+        }
+
+        private Task LogAsync(int gameId, string action, string details, int? characterId = null, int? itemId = null, int? categoryId = null)
+        {
+            return _historyLog.LogAsync(gameId, GetCurrentUserId(), action, details, characterId, itemId, categoryId);
         }
     }
 }

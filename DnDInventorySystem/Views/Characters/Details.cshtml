@@ -44,53 +44,72 @@
                 }
                 else
                 {
-                    <div class="table-responsive">
-                        <table class="table align-middle">
-                            <thead>
-                                <tr>
-                                    <th style="width: 60px;">Pic</th>
-                                    <th>Name</th>
-                                    <th>Description</th>
-                                    <th>Qty</th>
-                                    <th>With them</th>
-                                    <th></th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @foreach (var entry in Model.Inventory)
-                                {
+                    <form asp-action="UpdateInventoryBulk" method="post">
+                        <input type="hidden" name="characterId" value="@character.Id" />
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <div class="text-muted small">@Model.Inventory.Count item entries</div>
+                            <button type="submit" class="btn btn-sm btn-outline-primary">Save changes</button>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table align-middle">
+                                <thead>
                                     <tr>
-                                        <td>
-                                            @if (!string.IsNullOrWhiteSpace(entry.Item?.PhotoUrl))
-                                            {
-                                                <img src="@entry.Item.PhotoUrl" alt="@entry.Item.Name" class="img-fluid rounded" style="max-width:48px; max-height:48px;" />
-                                            }
-                                            else
-                                            {
-                                                <span class="text-muted small">No img</span>
-                                            }
-                                        </td>
-                                        <td>
-                                            <div class="fw-semibold">@entry.Item?.Name</div>
-                                            <div class="text-muted small">@entry.Item?.Category?.Name</div>
-                                        </td>
-                                        <td class="text-muted small">@entry.Item?.Description</td>
-                                        <td>@entry.Quantity</td>
-                                        <td>
-                                            <input type="checkbox" class="form-check-input" @(entry.IsEquipped ? "checked" : null) disabled />
-                                        </td>
-                                        <td class="text-end">
-                                            <form asp-action="RemoveInventory" method="post" onsubmit="return confirm('Remove this item from the character?');">
-                                                <input type="hidden" name="characterId" value="@character.Id" />
-                                                <input type="hidden" name="entryId" value="@entry.Id" />
-                                                <button type="submit" class="btn btn-sm btn-outline-danger">Remove</button>
-                                            </form>
-                                        </td>
+                                        <th style="width: 60px;">Pic</th>
+                                        <th>Name</th>
+                                        <th>Description</th>
+                                        <th style="width: 260px;">Inventory</th>
+                                        <th></th>
                                     </tr>
-                                }
-                            </tbody>
-                        </table>
-                    </div>
+                                </thead>
+                                <tbody>
+                                    @for (int i = 0; i < Model.Inventory.Count; i++)
+                                    {
+                                        var entry = Model.Inventory[i];
+                                        <tr>
+                                            <td>
+                                                @if (!string.IsNullOrWhiteSpace(entry.Item?.PhotoUrl))
+                                                {
+                                                    <img src="@entry.Item.PhotoUrl" alt="@entry.Item.Name" class="img-fluid rounded" style="max-width:48px; max-height:48px;" />
+                                                }
+                                                else
+                                                {
+                                                    <span class="text-muted small">No img</span>
+                                                }
+                                            </td>
+                                            <td>
+                                                <div class="fw-semibold">@entry.Item?.Name</div>
+                                                <div class="text-muted small">@entry.Item?.Category?.Name</div>
+                                            </td>
+                                            <td class="text-muted small">@entry.Item?.Description</td>
+                                            <td>
+                                                <input type="hidden" name="Updates[@i].EntryId" value="@entry.Id" />
+                                                <div class="d-flex align-items-center gap-2">
+                                                    <input type="number" name="Updates[@i].Quantity" min="1" value="@Model.Updates[i].Quantity" class="form-control form-control-sm" style="width:80px;" />
+                                                    <div class="form-check">
+                                                    <input type="checkbox" class="form-check-input" name="Updates[@i].IsEquipped" value="true" @(Model.Updates[i].IsEquipped ? "checked" : null) />
+                                                    <input type="hidden" name="Updates[@i].IsEquipped" value="false" />
+                                                    <label class="form-check-label small">With them</label>
+                                                </div>
+                                            </div>
+                                            </td>
+                                            <td class="text-end">
+                                                <button type="submit"
+                                                        class="btn btn-sm btn-outline-danger"
+                                                        formaction="@Url.Action("RemoveInventory")"
+                                                        formmethod="post"
+                                                        formnovalidate
+                                                        name="entryId"
+                                                        value="@entry.Id"
+                                                        onclick="return confirm('Remove this item from the character?');">
+                                                    Remove
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </form>
                 }
             </div>
         </div>

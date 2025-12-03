@@ -55,6 +55,11 @@
         </main>
     </div>
 
+    @if (ViewBag.HistorySidebar is DnDInventorySystem.ViewModels.HistorySidebarViewModel historyVm)
+    {
+        @await Html.PartialAsync("_HistorySidebar", historyVm)
+    }
+
     <footer class="border-top footer text-muted">
         <div class="container">
             &copy; 2025 - DnDInventorySystem

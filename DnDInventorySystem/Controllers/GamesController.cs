@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using DnDInventorySystem.Data;
 using DnDInventorySystem.Models;
 using DnDInventorySystem.ViewModels;
+using DnDInventorySystem;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -15,10 +16,12 @@ namespace DnDInventorySystem.Controllers
     {
         private const string PlayerRoleName = "Player";
         private readonly ApplicationDbContext _context;
+        private readonly HistoryLogService _historyLog;
 
-        public GamesController(ApplicationDbContext context)
+        public GamesController(ApplicationDbContext context, HistoryLogService historyLog)
         {
             _context = context;
+            _historyLog = historyLog;
         }
 
         public async Task<IActionResult> Index()
@@ -72,6 +75,7 @@ namespace DnDInventorySystem.Controllers
                 CategoryCount = await categoriesQuery.CountAsync()
             };
 
+            await SetHistorySidebarAsync(game.Id);
             return View(viewModel);
         }
 
@@ -133,6 +137,7 @@ namespace DnDInventorySystem.Controllers
                 return NotFound();
             }
 
+            await SetHistorySidebarAsync(game.Id);
             return View(game);
         }
 
@@ -154,6 +159,7 @@ namespace DnDInventorySystem.Controllers
 
             if (!ModelState.IsValid)
             {
+                await SetHistorySidebarAsync(updatedGame.Id);
                 return View(updatedGame);
             }
 
@@ -244,6 +250,8 @@ namespace DnDInventorySystem.Controllers
 
             _context.RolePersons.Add(rolePerson);
             await _context.SaveChangesAsync();
+            var actorName = await GetCurrentUserNameAsync();
+            await LogAsync(game.Id, "UserAdded", $"{actorName} added to the game", null, null, null);
 
             return RedirectToAction(nameof(Index));
         }
@@ -264,6 +272,30 @@ namespace DnDInventorySystem.Controllers
             }
 
             return int.Parse(claimValue);
+        }
+
+        private async Task<string> GetCurrentUserNameAsync()
+        {
+            var userId = GetCurrentUserId();
+            var name = await _context.Users
+                .Where(u => u.Id == userId)
+                .Select(u => u.Name)
+                .FirstOrDefaultAsync();
+            return string.IsNullOrWhiteSpace(name) ? "Unknown user" : name;
+        }
+
+        private Task LogAsync(int gameId, string action, string details, int? characterId = null, int? itemId = null, int? categoryId = null)
+        {
+            return _historyLog.LogAsync(gameId, GetCurrentUserId(), action, details, characterId, itemId, categoryId);
+        }
+
+        private async Task SetHistorySidebarAsync(int gameId)
+        {
+            ViewBag.HistorySidebar = new HistorySidebarViewModel
+            {
+                GameId = gameId,
+                Logs = await _historyLog.GetRecentAsync(gameId)
+            };
         }
 
         private async Task<Role> EnsureRoleAsync(string roleName)
