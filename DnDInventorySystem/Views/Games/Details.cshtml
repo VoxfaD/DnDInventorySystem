@@ -15,6 +15,8 @@
     <div class="d-flex gap-2">
         @if (canEdit)
         {
+            <a class="btn btn-outline-primary" asp-action="JoinCode" asp-route-id="@game.Id">Manage join code</a>
+            <a class="btn btn-outline-secondary" asp-action="Players" asp-route-id="@game.Id">Players</a>
             <a class="btn btn-outline-secondary" asp-action="Edit" asp-route-id="@game.Id">Edit</a>
         }
         <a class="btn btn-link" asp-action="Index">Back to games</a>

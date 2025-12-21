@@ -1,42 +1,40 @@
-@model IEnumerable<DnDInventorySystem.Models.Game>
+@model DnDInventorySystem.ViewModels.JoinGameViewModel
 
 @{
     ViewData["Title"] = "Join a game";
-    var hasGames = Model.Any();
 }
 
 <div class="d-flex align-items-center justify-content-between mb-4">
     <div>
-        <h1 class="mb-1">Join an existing game</h1>
-        <p class="text-muted mb-0">Pick a campaign to jump into. You will be added as a player.</p>
+        <h1 class="mb-1">Join a game</h1>
+        <p class="text-muted mb-0">Enter a join code to become part of a campaign.</p>
     </div>
     <a asp-action="Index" class="btn btn-link">Back to your games</a>
 </div>
 
-@if (!hasGames)
-{
-    <div class="alert alert-info">
-        There are no games available to join right now. You can also
-        <a asp-action="Create">create a new game</a>.
-    </div>
-}
-else
-{
-    <div class="list-group">
-        @foreach (var game in Model)
-        {
-            <div class="list-group-item d-flex flex-column flex-md-row justify-content-between gap-3 align-items-md-center">
-                <div>
-                    <h5 class="mb-1">@game.Name</h5>
-                    <div class="text-muted small">Host: @game.CreatedByUser?.Name</div>
-                    <p class="mb-0">@game.Description</p>
-                </div>
-                <form asp-action="JoinGame" method="post" class="text-md-end">
+<div class="row justify-content-center">
+    <div class="col-lg-6">
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <h5 class="card-title">Have a code?</h5>
+                <p class="text-muted mb-3">Your game master can generate a code in the format <code>XXX-XXXX-XXXX</code>. Paste it below to join.</p>
+
+                <form asp-action="Join" method="post" novalidate>
                     @Html.AntiForgeryToken()
-                    <input type="hidden" name="id" value="@game.Id" />
-                    <button type="submit" class="btn btn-primary">Join</button>
+                    <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+                    <div class="mb-3">
+                        <label asp-for="JoinCode" class="form-label"></label>
+                        <input asp-for="JoinCode" class="form-control" placeholder="ABC-1234-XYZ9" />
+                        <span asp-validation-for="JoinCode" class="text-danger"></span>
+                    </div>
+
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary">Join game</button>
+                        <a asp-action="Create" class="btn btn-outline-secondary">Create a game instead</a>
+                    </div>
                 </form>
             </div>
-        }
+        </div>
     </div>
-}
+</div>

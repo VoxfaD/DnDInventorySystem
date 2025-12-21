@@ -1,9 +1,12 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Security.Claims;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
@@ -18,11 +21,13 @@ namespace DnDInventorySystem.Controllers
     {
         private readonly ApplicationDbContext _context;
         private readonly HistoryLogService _historyLog;
+        private readonly IWebHostEnvironment _environment;
 
-        public ItemsController(ApplicationDbContext context, HistoryLogService historyLog)
+        public ItemsController(ApplicationDbContext context, HistoryLogService historyLog, IWebHostEnvironment environment)
         {
             _context = context;
             _historyLog = historyLog;
+            _environment = environment;
         }
 
         // GET: Items
@@ -94,7 +99,7 @@ namespace DnDInventorySystem.Controllers
         // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create(int gameId, [Bind("Name,Description,PhotoUrl,CategoryId")] Item item, int? returnCharacterId = null)
+        public async Task<IActionResult> Create(int gameId, [Bind("Name,Description,CategoryId")] Item item, IFormFile? photoFile, int? returnCharacterId = null)
         {
             var game = await GetAuthorizedGameAsync(gameId);
             if (game == null)
@@ -118,6 +123,12 @@ namespace DnDInventorySystem.Controllers
 
             if (ModelState.IsValid)
             {
+                var uploadedPath = await SaveImageAsync(photoFile);
+                if (!string.IsNullOrWhiteSpace(uploadedPath))
+                {
+                    item.PhotoUrl = uploadedPath;
+                }
+
                 _context.Add(item);
                 await _context.SaveChangesAsync();
                 var actor = await GetCurrentUserNameAsync();
@@ -160,7 +171,7 @@ namespace DnDInventorySystem.Controllers
         // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int id, [Bind("Id,Name,Description,PhotoUrl,CategoryId")] Item formItem)
+        public async Task<IActionResult> Edit(int id, [Bind("Id,Name,Description,CategoryId")] Item formItem, IFormFile? photoFile)
         {
             if (id != formItem.Id)
             {
@@ -192,7 +203,11 @@ namespace DnDInventorySystem.Controllers
                 var oldName = item.Name;
                 item.Name = formItem.Name;
                 item.Description = formItem.Description;
-                item.PhotoUrl = formItem.PhotoUrl ?? string.Empty;
+                var uploadedPath = await SaveImageAsync(photoFile);
+                if (!string.IsNullOrWhiteSpace(uploadedPath))
+                {
+                    item.PhotoUrl = uploadedPath;
+                }
                 item.CategoryId = formItem.CategoryId;
                 await _context.SaveChangesAsync();
                 await LogAsync(item.GameId, "ItemEdited", $"Item {item.Name} edited by {actor}", itemId: item.Id);
@@ -326,6 +341,32 @@ namespace DnDInventorySystem.Controllers
                 GameId = gameId,
                 Logs = await _historyLog.GetRecentAsync(gameId)
             };
+        }
+
+        private async Task<string?> SaveImageAsync(IFormFile? file)
+        {
+            if (file == null || file.Length == 0)
+            {
+                return null;
+            }
+
+            var uploadsRoot = string.IsNullOrWhiteSpace(_environment.WebRootPath)
+                ? Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads")
+                : Path.Combine(_environment.WebRootPath, "uploads");
+
+            Directory.CreateDirectory(uploadsRoot);
+
+            var extension = Path.GetExtension(file.FileName);
+            var safeExtension = string.IsNullOrWhiteSpace(extension) ? ".jpg" : extension;
+            var fileName = $"{Guid.NewGuid():N}{safeExtension}";
+            var filePath = Path.Combine(uploadsRoot, fileName);
+
+            using (var stream = new FileStream(filePath, FileMode.Create))
+            {
+                await file.CopyToAsync(stream);
+            }
+
+            return $"/uploads/{fileName}";
         }
     }
 }

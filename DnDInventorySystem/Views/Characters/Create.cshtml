@@ -15,7 +15,7 @@
     <div class="col-lg-7 col-xl-6">
         <div class="card shadow-sm">
             <div class="card-body">
-                <form asp-action="Create">
+                <form asp-action="Create" enctype="multipart/form-data">
                     <input type="hidden" name="gameId" value="@gameId" />
                     <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
 
@@ -32,9 +32,15 @@
                     </div>
 
                     <div class="mb-3">
-                        <label asp-for="PhotoUrl" class="form-label">Portrait URL (optional)</label>
-                        <input asp-for="PhotoUrl" class="form-control" />
-                        <span asp-validation-for="PhotoUrl" class="text-danger"></span>
+                        <label class="form-label">Portrait</label>
+                        <label class="d-block border border-secondary rounded p-4 text-center drop-zone" id="characterCreateDropZone" style="cursor: pointer; border-style: dashed;">
+                            <input type="file" name="photoFile" accept="image/*" class="d-none" id="characterCreatePhotoInput" />
+                            <div class="fw-semibold mb-1">Click or drop an image here</div>
+                            <div class="text-muted small" id="characterCreateFileName">PNG, JPG up to a few MB.</div>
+                        </label>
+                        <div class="mt-3 text-center">
+                            <img id="characterCreatePreview" src="" alt="Preview" class="img-fluid rounded shadow-sm d-none" style="max-height: 200px; object-fit: cover;" />
+                        </div>
                     </div>
 
                     <div class="mb-4">
@@ -57,4 +63,57 @@
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
+    <script>
+        (function setupCharacterCreateDropZone() {
+            const fileInput = document.getElementById('characterCreatePhotoInput');
+            const fileName = document.getElementById('characterCreateFileName');
+            const dropZone = document.getElementById('characterCreateDropZone');
+            const preview = document.getElementById('characterCreatePreview');
+
+            function setPreview(file) {
+                if (!preview) return;
+                if (file) {
+                    preview.src = URL.createObjectURL(file);
+                    preview.classList.remove('d-none');
+                } else {
+                    preview.src = '';
+                    preview.classList.add('d-none');
+                }
+            }
+
+            function setName(name) {
+                if (!fileName) return;
+                fileName.textContent = name || 'PNG, JPG up to a few MB.';
+            }
+
+            if (fileInput) {
+                fileInput.addEventListener('change', function () {
+                    const file = this.files && this.files.length ? this.files[0] : null;
+                    setName(file ? file.name : '');
+                    setPreview(file);
+                });
+            }
+
+            if (dropZone && fileInput) {
+                dropZone.addEventListener('dragover', function (e) {
+                    e.preventDefault();
+                    dropZone.classList.add('bg-light');
+                });
+                dropZone.addEventListener('dragleave', function () {
+                    dropZone.classList.remove('bg-light');
+                });
+                dropZone.addEventListener('drop', function (e) {
+                    e.preventDefault();
+                    dropZone.classList.remove('bg-light');
+                    if (e.dataTransfer.files && e.dataTransfer.files.length) {
+                        fileInput.files = e.dataTransfer.files;
+                        fileInput.dispatchEvent(new Event('change'));
+                    }
+                });
+                dropZone.addEventListener('click', function () {
+                    fileInput.click();
+                });
+            }
+        })();
+    </script>
 }

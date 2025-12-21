@@ -1,9 +1,12 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Security.Claims;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
@@ -19,11 +22,13 @@ namespace DnDInventorySystem.Controllers
     {
         private readonly ApplicationDbContext _context;
         private readonly HistoryLogService _historyLog;
+        private readonly IWebHostEnvironment _environment;
 
-        public CharactersController(ApplicationDbContext context, HistoryLogService historyLog)
+        public CharactersController(ApplicationDbContext context, HistoryLogService historyLog, IWebHostEnvironment environment)
         {
             _context = context;
             _historyLog = historyLog;
+            _environment = environment;
         }
 
         // GET: Characters
@@ -89,7 +94,7 @@ namespace DnDInventorySystem.Controllers
         // POST: Characters/Create
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create(int gameId, [Bind("Name,Description,PhotoUrl,OwnerUserId")] Character character)
+        public async Task<IActionResult> Create(int gameId, [Bind("Name,Description,OwnerUserId")] Character character, IFormFile? photoFile)
         {
             var game = await GetAuthorizedGameAsync(gameId);
             if (game == null)
@@ -105,10 +110,16 @@ namespace DnDInventorySystem.Controllers
 
             character.GameId = game.Id;
             character.CreatedByUserId = GetCurrentUserId();
-            character.PhotoUrl = character.PhotoUrl ?? string.Empty;
+            character.PhotoUrl = string.Empty;
 
             if (ModelState.IsValid)
             {
+                var uploadedPath = await SaveImageAsync(photoFile);
+                if (!string.IsNullOrWhiteSpace(uploadedPath))
+                {
+                    character.PhotoUrl = uploadedPath;
+                }
+
                 _context.Add(character);
                 await _context.SaveChangesAsync();
                 var actorName = await GetCurrentUserNameAsync();
@@ -148,7 +159,7 @@ namespace DnDInventorySystem.Controllers
         // POST: Characters/Edit/5
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int id, [Bind("Id,Name,Description,PhotoUrl,OwnerUserId")] Character formCharacter)
+        public async Task<IActionResult> Edit(int id, [Bind("Id,Name,Description,OwnerUserId")] Character formCharacter, IFormFile? photoFile)
         {
             if (id != formCharacter.Id)
             {
@@ -174,8 +185,12 @@ namespace DnDInventorySystem.Controllers
 
                 character.Name = formCharacter.Name;
                 character.Description = formCharacter.Description;
-                character.PhotoUrl = formCharacter.PhotoUrl ?? string.Empty;
                 character.OwnerUserId = formCharacter.OwnerUserId;
+                var uploadedPath = await SaveImageAsync(photoFile);
+                if (!string.IsNullOrWhiteSpace(uploadedPath))
+                {
+                    character.PhotoUrl = uploadedPath;
+                }
                 await _context.SaveChangesAsync();
                 await LogAsync(character.GameId, "CharacterEdited", $"Character {character.Name} edited by {actorName}", characterId: character.Id);
                 if (previousOwnerId != formCharacter.OwnerUserId)
@@ -189,7 +204,6 @@ namespace DnDInventorySystem.Controllers
             await PopulateCharacterEditViewAsync(character, formCharacter.OwnerUserId, validOwners);
             character.Name = formCharacter.Name;
             character.Description = formCharacter.Description;
-            character.PhotoUrl = formCharacter.PhotoUrl;
             character.OwnerUserId = formCharacter.OwnerUserId;
             await SetHistorySidebarAsync(character.GameId);
             return View(character);
@@ -563,6 +577,32 @@ namespace DnDInventorySystem.Controllers
         private Task LogAsync(int gameId, string action, string details, int? characterId = null, int? itemId = null, int? categoryId = null)
         {
             return _historyLog.LogAsync(gameId, GetCurrentUserId(), action, details, characterId, itemId, categoryId);
+        }
+
+        private async Task<string?> SaveImageAsync(IFormFile? file)
+        {
+            if (file == null || file.Length == 0)
+            {
+                return null;
+            }
+
+            var uploadsRoot = string.IsNullOrWhiteSpace(_environment.WebRootPath)
+                ? Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads")
+                : Path.Combine(_environment.WebRootPath, "uploads");
+
+            Directory.CreateDirectory(uploadsRoot);
+
+            var extension = Path.GetExtension(file.FileName);
+            var safeExtension = string.IsNullOrWhiteSpace(extension) ? ".jpg" : extension;
+            var fileName = $"{Guid.NewGuid():N}{safeExtension}";
+            var filePath = Path.Combine(uploadsRoot, fileName);
+
+            using (var stream = new FileStream(filePath, FileMode.Create))
+            {
+                await file.CopyToAsync(stream);
+            }
+
+            return $"/uploads/{fileName}";
         }
     }
 }

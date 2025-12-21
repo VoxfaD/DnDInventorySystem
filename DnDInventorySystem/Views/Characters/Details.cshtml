@@ -23,9 +23,18 @@
         <div class="card shadow-sm mb-3">
             <div class="card-body">
                 <h5 class="card-title">Character info</h5>
+                <div class="text-center mb-3">
+                    @if (!string.IsNullOrWhiteSpace(character.PhotoUrl))
+                    {
+                        <img src="@character.PhotoUrl" alt="@character.Name" class="img-fluid rounded shadow-sm" style="max-height: 240px; object-fit: cover;" />
+                    }
+                    else
+                    {
+                        <div class="text-muted">No portrait set</div>
+                    }
+                </div>
                 <p class="mb-2"><strong>Description:</strong> @(!string.IsNullOrWhiteSpace(character.Description) ? character.Description : "No description")</p>
                 <p class="mb-2"><strong>Created by:</strong> @character.CreatedByUser?.Name</p>
-                <p class="mb-0"><strong>Portrait:</strong> @(!string.IsNullOrWhiteSpace(character.PhotoUrl) ? character.PhotoUrl : "No portrait set")</p>
             </div>
         </div>
     </div>

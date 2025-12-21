@@ -50,7 +50,9 @@ namespace DnDInventorySystem.Migrations
                     Name = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
                     Description = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    CreatedByUserId = table.Column<int>(type: "int", nullable: false)
+                    CreatedByUserId = table.Column<int>(type: "int", nullable: false),
+                    JoinCode = table.Column<string>(type: "nvarchar(40)", maxLength: 40, nullable: true),
+                    JoinCodeActive = table.Column<bool>(type: "bit", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -98,7 +100,7 @@ namespace DnDInventorySystem.Migrations
                         .Annotation("SqlServer:Identity", "1, 1"),
                     Name = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
                     Description = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    PhotoUrl = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    PhotoUrl = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     GameId = table.Column<int>(type: "int", nullable: false),
                     CreatedByUserId = table.Column<int>(type: "int", nullable: false),
                     OwnerUserId = table.Column<int>(type: "int", nullable: false)
@@ -167,7 +169,7 @@ namespace DnDInventorySystem.Migrations
                         .Annotation("SqlServer:Identity", "1, 1"),
                     Name = table.Column<string>(type: "nvarchar(120)", maxLength: 120, nullable: false),
                     Description = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    PhotoUrl = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    PhotoUrl = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     GameId = table.Column<int>(type: "int", nullable: false),
                     CreatedByUserId = table.Column<int>(type: "int", nullable: false),
                     CategoryId = table.Column<int>(type: "int", nullable: true)
@@ -284,11 +286,11 @@ namespace DnDInventorySystem.Migrations
 
             migrationBuilder.InsertData(
                 table: "Games",
-                columns: new[] { "Id", "CreatedAt", "CreatedByUserId", "Description", "Name" },
+                columns: new[] { "Id", "CreatedAt", "CreatedByUserId", "Description", "JoinCode", "JoinCodeActive", "Name" },
                 values: new object[,]
                 {
-                    { 1, new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), 1, "Alice's campaign", "Stormreach" },
-                    { 2, new DateTime(2024, 1, 2, 0, 0, 0, 0, DateTimeKind.Utc), 2, "Bob's campaign", "Duskhaven" }
+                    { 1, new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), 1, "Alice's campaign", null, false, "Stormreach" },
+                    { 2, new DateTime(2024, 1, 2, 0, 0, 0, 0, DateTimeKind.Utc), 2, "Bob's campaign", null, false, "Duskhaven" }
                 });
 
             migrationBuilder.InsertData(
@@ -323,12 +325,12 @@ namespace DnDInventorySystem.Migrations
                 columns: new[] { "Id", "CreatedByUserId", "Description", "GameId", "Name", "OwnerUserId", "PhotoUrl" },
                 values: new object[,]
                 {
-                    { 1, 1, "Ranger", 1, "Aria", 1, "" },
-                    { 2, 1, "Cleric", 1, "Bram", 1, "" },
-                    { 3, 1, "Wizard", 1, "Celeste", 1, "" },
-                    { 101, 2, "Fighter", 2, "Dante", 2, "" },
-                    { 102, 2, "Druid", 2, "Elara", 2, "" },
-                    { 103, 2, "Rogue", 2, "Felix", 2, "" }
+                    { 1, 1, "Ranger", 1, "Aria", 1, null },
+                    { 2, 1, "Cleric", 1, "Bram", 1, null },
+                    { 3, 1, "Wizard", 1, "Celeste", 1, null },
+                    { 101, 2, "Fighter", 2, "Dante", 2, null },
+                    { 102, 2, "Druid", 2, "Elara", 2, null },
+                    { 103, 2, "Rogue", 2, "Felix", 2, null }
                 });
 
             migrationBuilder.InsertData(
@@ -397,6 +399,13 @@ namespace DnDInventorySystem.Migrations
                 name: "IX_Games_CreatedByUserId",
                 table: "Games",
                 column: "CreatedByUserId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Games_JoinCode",
+                table: "Games",
+                column: "JoinCode",
+                unique: true,
+                filter: "[JoinCode] IS NOT NULL");
 
             migrationBuilder.CreateIndex(
                 name: "IX_HistoryLogs_CategoryId",

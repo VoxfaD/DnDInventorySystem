@@ -1,49 +1,114 @@
 @model DnDInventorySystem.Models.Item
 
 @{
-    ViewData["Title"] = "Edit";
+    ViewData["Title"] = "Edit item";
+    var creatorName = ViewData["CreatorName"] as string ?? "Unknown";
+    var gameName = ViewData["GameName"] as string ?? "Game";
 }
 
-<h1>Edit</h1>
-
-<h4>Item</h4>
-<hr />
-<div class="row">
-    <div class="col-md-4">
-        <form asp-action="Edit">
-            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
-            <input type="hidden" asp-for="Id" />
-            <div class="form-group">
-                <label asp-for="Name" class="control-label"></label>
-                <input asp-for="Name" class="form-control" />
-                <span asp-validation-for="Name" class="text-danger"></span>
-            </div>
-            <div class="form-group">
-                <label asp-for="Description" class="control-label"></label>
-                <input asp-for="Description" class="form-control" />
-                <span asp-validation-for="Description" class="text-danger"></span>
-            </div>
-            <div class="form-group">
-                <label asp-for="PhotoUrl" class="control-label"></label>
-                <input asp-for="PhotoUrl" class="form-control" />
-                <span asp-validation-for="PhotoUrl" class="text-danger"></span>
-            </div>
-            <div class="form-group">
-                <label asp-for="CategoryId" class="control-label"></label>
-                <select asp-for="CategoryId" class="form-control" asp-items="ViewBag.CategoryId"></select>
-                <span asp-validation-for="CategoryId" class="text-danger"></span>
-            </div>
-            <div class="form-group">
-                <input type="submit" value="Save" class="btn btn-primary" />
-            </div>
-        </form>
-    </div>
+<div class="mb-4">
+    <h1 class="mb-1">Edit item</h1>
+    <p class="text-muted mb-0">Game: <strong>@gameName</strong> · Created by @creatorName</p>
+    <a class="btn btn-link ps-0" asp-action="Index" asp-route-gameId="@Model.GameId">Back to items</a>
+    <hr />
 </div>
 
-<div>
-    <a asp-action="Index">Back to List</a>
+<div class="row">
+    <div class="col-lg-7 col-xl-6">
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <form asp-action="Edit" enctype="multipart/form-data">
+                    <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+                    <input type="hidden" asp-for="Id" />
+
+                    <div class="mb-3">
+                        <label asp-for="Name" class="form-label"></label>
+                        <input asp-for="Name" class="form-control" autofocus />
+                        <span asp-validation-for="Name" class="text-danger"></span>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="Description" class="form-label"></label>
+                        <textarea asp-for="Description" class="form-control" rows="3"></textarea>
+                        <span asp-validation-for="Description" class="text-danger"></span>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Item image</label>
+                        <label class="d-block border border-secondary rounded p-4 text-center drop-zone" id="itemEditDropZone" style="cursor: pointer; border-style: dashed;">
+                            <input type="file" name="photoFile" accept="image/*" class="d-none" id="itemEditPhotoInput" />
+                            <div class="fw-semibold mb-1">Click or drop an image here</div>
+                            <div class="text-muted small" id="itemEditFileName">@(!string.IsNullOrWhiteSpace(Model.PhotoUrl) ? "Current image shown below" : "PNG, JPG up to a few MB.")</div>
+                        </label>
+                        <div class="mt-3 text-center">
+                            <img id="itemEditPreview" src="@Model.PhotoUrl" alt="Preview" class="img-fluid rounded shadow-sm @(string.IsNullOrWhiteSpace(Model.PhotoUrl) ? "d-none" : string.Empty)" style="max-height: 200px; object-fit: cover;" />
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label asp-for="CategoryId" class="form-label"></label>
+                        <select asp-for="CategoryId" class="form-select" asp-items="ViewBag.CategoryId"></select>
+                        <span asp-validation-for="CategoryId" class="text-danger"></span>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary">Save changes</button>
+                    <a class="btn btn-link" asp-action="Index" asp-route-gameId="@Model.GameId">Cancel</a>
+                </form>
+            </div>
+        </div>
+    </div>
 </div>
 
 @section Scripts {
     @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+    <script>
+        (function setupItemEditDropZone() {
+            const fileInput = document.getElementById('itemEditPhotoInput');
+            const fileName = document.getElementById('itemEditFileName');
+            const dropZone = document.getElementById('itemEditDropZone');
+            const preview = document.getElementById('itemEditPreview');
+
+            function setPreview(file) {
+                if (!preview) return;
+                if (file) {
+                    preview.src = URL.createObjectURL(file);
+                    preview.classList.remove('d-none');
+                }
+            }
+
+            function setName(name) {
+                if (!fileName) return;
+                fileName.textContent = name || 'PNG, JPG up to a few MB.';
+            }
+
+            if (fileInput) {
+                fileInput.addEventListener('change', function () {
+                    const file = this.files && this.files.length ? this.files[0] : null;
+                    setName(file ? file.name : '');
+                    setPreview(file);
+                });
+            }
+
+            if (dropZone && fileInput) {
+                dropZone.addEventListener('dragover', function (e) {
+                    e.preventDefault();
+                    dropZone.classList.add('bg-light');
+                });
+                dropZone.addEventListener('dragleave', function () {
+                    dropZone.classList.remove('bg-light');
+                });
+                dropZone.addEventListener('drop', function (e) {
+                    e.preventDefault();
+                    dropZone.classList.remove('bg-light');
+                    if (e.dataTransfer.files && e.dataTransfer.files.length) {
+                        fileInput.files = e.dataTransfer.files;
+                        fileInput.dispatchEvent(new Event('change'));
+                    }
+                });
+                dropZone.addEventListener('click', function () {
+                    fileInput.click();
+                });
+            }
+        })();
+    </script>
 }

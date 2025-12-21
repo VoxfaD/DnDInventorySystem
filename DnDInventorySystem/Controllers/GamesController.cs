@@ -1,5 +1,6 @@
 using System.Linq;
 using System.Security.Claims;
+using System.Security.Cryptography;
 using System.Threading.Tasks;
 using DnDInventorySystem.Data;
 using DnDInventorySystem.Models;
@@ -204,39 +205,170 @@ namespace DnDInventorySystem.Controllers
             return RedirectToAction(nameof(Index));
         }
 
-        public async Task<IActionResult> Join()
+        public async Task<IActionResult> Players(int? id)
         {
-            var userId = GetCurrentUserId();
+            if (id == null)
+            {
+                return NotFound();
+            }
 
-            var availableGames = await _context.Games
-                .Include(g => g.CreatedByUser)
-                .Where(g => g.CreatedByUserId != userId &&
-                            !g.RolePersons.Any(rp => rp.UserId == userId))
-                .OrderBy(g => g.Name)
-                .ToListAsync();
-
-            return View(availableGames);
-        }
-
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> JoinGame(int id)
-        {
-            var userId = GetCurrentUserId();
-            var game = await _context.Games
-                .Include(g => g.RolePersons)
-                .FirstOrDefaultAsync(g => g.Id == id);
-
+            var game = await GetOwnedGameAsync(id.Value);
             if (game == null)
             {
                 return NotFound();
             }
 
+            var players = await _context.RolePersons
+                .Include(rp => rp.User)
+                .Include(rp => rp.Role)
+                .Where(rp => rp.GameId == game.Id)
+                .OrderBy(rp => rp.User.Name)
+                .ToListAsync();
+
+            var viewModel = new GamePlayersViewModel
+            {
+                Game = game,
+                Players = players
+            };
+
+            await SetHistorySidebarAsync(game.Id);
+            return View(viewModel);
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> KickPlayer(int gameId, int userId)
+        {
+            var game = await GetOwnedGameAsync(gameId);
+            if (game == null)
+            {
+                return NotFound();
+            }
+
+            if (userId == game.CreatedByUserId)
+            {
+                TempData["GameMessage"] = "You cannot remove the game owner.";
+                return RedirectToAction(nameof(Players), new { id = game.Id });
+            }
+
+            var rolePerson = await _context.RolePersons
+                .FirstOrDefaultAsync(rp => rp.GameId == game.Id && rp.UserId == userId);
+
+            if (rolePerson != null)
+            {
+                _context.RolePersons.Remove(rolePerson);
+                await _context.SaveChangesAsync();
+                var actor = await GetCurrentUserNameAsync();
+                await LogAsync(game.Id, "UserRemoved", $"{actor} removed a player from the game", null, null, null);
+                TempData["GameMessage"] = "Player removed from the game.";
+            }
+
+            return RedirectToAction(nameof(Players), new { id = game.Id });
+        }
+
+        public async Task<IActionResult> JoinCode(int? id)
+        {
+            if (id == null)
+            {
+                return NotFound();
+            }
+
+            var game = await GetOwnedGameAsync(id.Value);
+            if (game == null)
+            {
+                return NotFound();
+            }
+
+            var viewModel = new JoinCodeViewModel
+            {
+                GameId = game.Id,
+                GameName = game.Name,
+                JoinCode = game.JoinCode,
+                JoinCodeActive = game.JoinCodeActive
+            };
+
+            return View(viewModel);
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> GenerateJoinCode(int gameId)
+        {
+            var game = await GetOwnedGameAsync(gameId);
+            if (game == null)
+            {
+                return NotFound();
+            }
+
+            game.JoinCode = await GenerateUniqueJoinCodeAsync();
+            game.JoinCodeActive = true;
+            await _context.SaveChangesAsync();
+
+            TempData["GameMessage"] = "Join code generated and activated.";
+            return RedirectToAction(nameof(JoinCode), new { id = game.Id });
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ToggleJoinCode(int gameId, bool activate)
+        {
+            var game = await GetOwnedGameAsync(gameId);
+            if (game == null)
+            {
+                return NotFound();
+            }
+
+            if (string.IsNullOrWhiteSpace(game.JoinCode))
+            {
+                TempData["GameMessage"] = "Generate a join code first.";
+                return RedirectToAction(nameof(JoinCode), new { id = game.Id });
+            }
+
+            game.JoinCodeActive = activate;
+            await _context.SaveChangesAsync();
+
+            TempData["GameMessage"] = activate ? "Join code activated." : "Join code deactivated.";
+            return RedirectToAction(nameof(JoinCode), new { id = game.Id });
+        }
+
+        public IActionResult Join()
+        {
+            return View(new JoinGameViewModel());
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Join(JoinGameViewModel model)
+        {
+            if (!ModelState.IsValid)
+            {
+                return View(model);
+            }
+
+            var code = model.JoinCode?.Trim().ToUpperInvariant();
+            if (string.IsNullOrWhiteSpace(code))
+            {
+                ModelState.AddModelError(nameof(model.JoinCode), "Enter a join code.");
+                return View(model);
+            }
+
+            var game = await _context.Games
+                .Include(g => g.RolePersons)
+                .FirstOrDefaultAsync(g => g.JoinCode == code);
+
+            if (game == null || string.IsNullOrWhiteSpace(game.JoinCode) || !game.JoinCodeActive)
+            {
+                ModelState.AddModelError(nameof(model.JoinCode), "Join code is invalid or deactivated.");
+                return View(model);
+            }
+
+            var userId = GetCurrentUserId();
             var alreadyMember = game.CreatedByUserId == userId ||
                                 game.RolePersons.Any(rp => rp.UserId == userId);
             if (alreadyMember)
             {
-                return RedirectToAction(nameof(Index));
+                ModelState.AddModelError(nameof(model.JoinCode), "You are already part of this game.");
+                return View(model);
             }
 
             var memberRole = await EnsureRoleAsync(PlayerRoleName);
@@ -251,8 +383,9 @@ namespace DnDInventorySystem.Controllers
             _context.RolePersons.Add(rolePerson);
             await _context.SaveChangesAsync();
             var actorName = await GetCurrentUserNameAsync();
-            await LogAsync(game.Id, "UserAdded", $"{actorName} added to the game", null, null, null);
+            await LogAsync(game.Id, "UserAdded", $"{actorName} joined the game using a code", null, null, null);
 
+            TempData["GameMessage"] = $"You joined \"{game.Name}\".";
             return RedirectToAction(nameof(Index));
         }
 
@@ -261,6 +394,12 @@ namespace DnDInventorySystem.Controllers
             return _context.Games.Where(g =>
                 g.CreatedByUserId == userId ||
                 g.RolePersons.Any(rp => rp.UserId == userId));
+        }
+
+        private Task<Game> GetOwnedGameAsync(int id)
+        {
+            var userId = GetCurrentUserId();
+            return _context.Games.FirstOrDefaultAsync(g => g.Id == id && g.CreatedByUserId == userId);
         }
 
         private int GetCurrentUserId()
@@ -310,6 +449,31 @@ namespace DnDInventorySystem.Controllers
             _context.Roles.Add(role);
             await _context.SaveChangesAsync();
             return role;
+        }
+
+        private async Task<string> GenerateUniqueJoinCodeAsync()
+        {
+            const string alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+
+            string BuildSegment(int length)
+            {
+                var chars = new char[length];
+                for (var i = 0; i < length; i++)
+                {
+                    chars[i] = alphabet[RandomNumberGenerator.GetInt32(alphabet.Length)];
+                }
+
+                return new string(chars);
+            }
+
+            string code;
+            do
+            {
+                code = $"{BuildSegment(3)}-{BuildSegment(4)}-{BuildSegment(4)}";
+            }
+            while (await _context.Games.AnyAsync(g => g.JoinCode == code));
+
+            return code;
         }
     }
 }

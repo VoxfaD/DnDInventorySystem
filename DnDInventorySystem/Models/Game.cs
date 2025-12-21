@@ -18,6 +18,10 @@ namespace DnDInventorySystem.Models
         public int CreatedByUserId { get; set; }
         public User CreatedByUser { get; set; }
 
+        [MaxLength(40)]
+        public string? JoinCode { get; set; }
+        public bool JoinCodeActive { get; set; }
+
         public ICollection<Character> Characters { get; set; } = new List<Character>();
         public ICollection<Category> Categories { get; set; } = new List<Category>();
         public ICollection<Item> Items { get; set; } = new List<Item>();

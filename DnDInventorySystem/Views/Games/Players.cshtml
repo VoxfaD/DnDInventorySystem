@@ -1,0 +1,64 @@
+@model DnDInventorySystem.ViewModels.GamePlayersViewModel
+
+@{
+    ViewData["Title"] = "Players";
+    var game = Model.Game;
+}
+
+<div class="d-flex align-items-center justify-content-between mb-4">
+    <div>
+        <h1 class="mb-1">Players in @game.Name</h1>
+        <div class="text-muted">Manage who can access this game.</div>
+    </div>
+    <a class="btn btn-link" asp-action="Details" asp-route-id="@game.Id">Back to game</a>
+</div>
+
+@if (TempData["GameMessage"] is string status)
+{
+    <div class="alert alert-info">@status</div>
+}
+
+<div class="card shadow-sm">
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table align-middle">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Email</th>
+                        <th>Role</th>
+                        <th class="text-end">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                @foreach (var player in Model.Players)
+                {
+                    var isOwner = player.UserId == game.CreatedByUserId;
+                    <tr>
+                        <td class="fw-semibold">@player.User?.Name</td>
+                        <td class="text-muted small">@player.User?.Email</td>
+                        <td class="text-muted small">
+                            @(isOwner ? "Owner" : player.Role?.Name ?? "Player")
+                        </td>
+                        <td class="text-end">
+                            @if (isOwner)
+                            {
+                                <span class="badge bg-secondary">Owner</span>
+                            }
+                            else
+                            {
+                                <form asp-action="KickPlayer" method="post" class="d-inline">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="gameId" value="@game.Id" />
+                                    <input type="hidden" name="userId" value="@player.UserId" />
+                                    <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Remove this player from the game?');">Remove</button>
+                                </form>
+                            }
+                        </td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>

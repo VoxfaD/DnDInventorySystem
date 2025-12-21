@@ -219,7 +219,6 @@ namespace DnDInventorySystem.Migrations
                         .HasColumnType("int");
 
                     b.Property<string>("PhotoUrl")
-                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.HasKey("Id");
@@ -240,8 +239,7 @@ namespace DnDInventorySystem.Migrations
                             Description = "Ranger",
                             GameId = 1,
                             Name = "Aria",
-                            OwnerUserId = 1,
-                            PhotoUrl = ""
+                            OwnerUserId = 1
                         },
                         new
                         {
@@ -250,8 +248,7 @@ namespace DnDInventorySystem.Migrations
                             Description = "Cleric",
                             GameId = 1,
                             Name = "Bram",
-                            OwnerUserId = 1,
-                            PhotoUrl = ""
+                            OwnerUserId = 1
                         },
                         new
                         {
@@ -260,8 +257,7 @@ namespace DnDInventorySystem.Migrations
                             Description = "Wizard",
                             GameId = 1,
                             Name = "Celeste",
-                            OwnerUserId = 1,
-                            PhotoUrl = ""
+                            OwnerUserId = 1
                         },
                         new
                         {
@@ -270,8 +266,7 @@ namespace DnDInventorySystem.Migrations
                             Description = "Fighter",
                             GameId = 2,
                             Name = "Dante",
-                            OwnerUserId = 2,
-                            PhotoUrl = ""
+                            OwnerUserId = 2
                         },
                         new
                         {
@@ -280,8 +275,7 @@ namespace DnDInventorySystem.Migrations
                             Description = "Druid",
                             GameId = 2,
                             Name = "Elara",
-                            OwnerUserId = 2,
-                            PhotoUrl = ""
+                            OwnerUserId = 2
                         },
                         new
                         {
@@ -290,8 +284,7 @@ namespace DnDInventorySystem.Migrations
                             Description = "Rogue",
                             GameId = 2,
                             Name = "Felix",
-                            OwnerUserId = 2,
-                            PhotoUrl = ""
+                            OwnerUserId = 2
                         });
                 });
 
@@ -313,6 +306,13 @@ namespace DnDInventorySystem.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<string>("JoinCode")
+                        .HasMaxLength(40)
+                        .HasColumnType("nvarchar(40)");
+
+                    b.Property<bool>("JoinCodeActive")
+                        .HasColumnType("bit");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(100)
@@ -321,6 +321,10 @@ namespace DnDInventorySystem.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("CreatedByUserId");
+
+                    b.HasIndex("JoinCode")
+                        .IsUnique()
+                        .HasFilter("[JoinCode] IS NOT NULL");
 
                     b.ToTable("Games");
 
@@ -331,6 +335,7 @@ namespace DnDInventorySystem.Migrations
                             CreatedAt = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
                             CreatedByUserId = 1,
                             Description = "Alice's campaign",
+                            JoinCodeActive = false,
                             Name = "Stormreach"
                         },
                         new
@@ -339,6 +344,7 @@ namespace DnDInventorySystem.Migrations
                             CreatedAt = new DateTime(2024, 1, 2, 0, 0, 0, 0, DateTimeKind.Utc),
                             CreatedByUserId = 2,
                             Description = "Bob's campaign",
+                            JoinCodeActive = false,
                             Name = "Duskhaven"
                         });
                 });
@@ -420,7 +426,6 @@ namespace DnDInventorySystem.Migrations
                         .HasColumnType("nvarchar(120)");
 
                     b.Property<string>("PhotoUrl")
-                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.HasKey("Id");
