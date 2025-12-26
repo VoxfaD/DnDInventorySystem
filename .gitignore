@@ -16,4 +16,5 @@ wwwroot/dist/
 wwwroot/lib/
 secrets.json
 
-
+# EF Core migrations (generated locally per environment)
+**/Migrations/

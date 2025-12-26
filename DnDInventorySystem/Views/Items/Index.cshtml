@@ -4,6 +4,7 @@
     ViewData["Title"] = "Index";
     var currentUserId = ViewBag.CurrentUserId as int? ?? 0;
     var isOwner = ViewBag.IsOwner as bool? ?? false;
+    var privileges = ViewBag.Privileges as DnDInventorySystem.Models.GamePrivilege? ?? DnDInventorySystem.Models.GamePrivilege.None;
 }
 
 <h1>Items</h1>
@@ -21,7 +22,10 @@
 }
 @if (currentGameId.HasValue)
 {
-    <a asp-action="Create" asp-route-gameId="@currentGameId">Create New</a>
+    if (isOwner || privileges.HasFlag(DnDInventorySystem.Models.GamePrivilege.CreateItems))
+    {
+        <a asp-action="Create" asp-route-gameId="@currentGameId">Create New</a>
+    }
 }
 else
 {
@@ -35,7 +39,6 @@ else
             <th>Name</th>
             <th>Description</th>
             <th>Category</th>
-            <th>Game</th>
             <th>Creator</th>
             <th class="text-end">Actions</th>
         </tr>
@@ -56,13 +59,15 @@ else
             <td class="fw-semibold">@item.Name</td>
             <td class="text-muted small">@item.Description</td>
             <td class="text-muted small">@item.Category?.Name</td>
-            <td class="text-muted small">@item.Game?.Name</td>
             <td class="text-muted small">@item.CreatedByUser?.Name</td>
             <td class="text-end">
                 <a class="btn btn-sm btn-outline-primary" asp-action="Details" asp-route-id="@item.Id">Details</a>
-                @if (isOwner || item.CreatedByUserId == currentUserId)
+                @if (isOwner || (privileges.HasFlag(DnDInventorySystem.Models.GamePrivilege.EditItems) && item.CreatedByUserId == currentUserId))
                 {
                     <a class="btn btn-sm btn-outline-secondary" asp-action="Edit" asp-route-id="@item.Id">Edit</a>
+                }
+                @if (isOwner || (privileges.HasFlag(DnDInventorySystem.Models.GamePrivilege.DeleteItems) && item.CreatedByUserId == currentUserId))
+                {
                     <a class="btn btn-sm btn-outline-danger" asp-action="Delete" asp-route-id="@item.Id">Delete</a>
                 }
             </td>
@@ -70,3 +75,22 @@ else
 }
     </tbody>
 </table>
+
+@{
+    var pageNumber = ViewBag.Page as int? ?? 1;
+    var totalPages = ViewBag.TotalPages as int? ?? 1;
+}
+@if (totalPages > 1)
+{
+    <nav aria-label="Items pagination">
+        <ul class="pagination">
+            <li class="page-item @(pageNumber <= 1 ? "disabled" : "")">
+                <a class="page-link" asp-action="Index" asp-route-gameId="@ViewData["CurrentGameId"]" asp-route-page="@(pageNumber - 1)">Previous</a>
+            </li>
+            <li class="page-item disabled"><span class="page-link">Page @pageNumber of @totalPages</span></li>
+            <li class="page-item @(pageNumber >= totalPages ? "disabled" : "")">
+                <a class="page-link" asp-action="Index" asp-route-gameId="@ViewData["CurrentGameId"]" asp-route-page="@(pageNumber + 1)">Next</a>
+            </li>
+        </ul>
+    </nav>
+}

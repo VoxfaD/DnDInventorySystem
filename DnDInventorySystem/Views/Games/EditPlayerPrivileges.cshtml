@@ -1,0 +1,62 @@
+@model DnDInventorySystem.ViewModels.EditPlayerPrivilegesViewModel
+@using DnDInventorySystem.Models
+
+@{
+    ViewData["Title"] = "Edit Player Privileges";
+    var allowed = new[]
+    {
+        GamePrivilege.CreateCategories,
+        GamePrivilege.EditCategories,
+        GamePrivilege.DeleteCategories,
+        GamePrivilege.ViewCategories,
+        GamePrivilege.CreateItems,
+        GamePrivilege.EditItems,
+        GamePrivilege.DeleteItems,
+        GamePrivilege.ViewItems,
+        GamePrivilege.CreateCharacters,
+        GamePrivilege.EditCharacters,
+        GamePrivilege.DeleteCharacters,
+        GamePrivilege.ViewCharacters,
+        GamePrivilege.EditCharacterInventory,
+        GamePrivilege.RemoveItemsFromCharacters,
+        GamePrivilege.AddItemsToCharacters
+    };
+    var allPrivileges = allowed.OrderBy(p => p.ToString()).ToList();
+}
+
+<div class="d-flex align-items-center justify-content-between mb-4">
+    <div>
+        <h1 class="mb-1">Edit privileges</h1>
+        <div class="text-muted">Adjust what @Model.UserName can do in this game.</div>
+    </div>
+    <a class="btn btn-link" asp-action="Players" asp-route-id="@Model.GameId">Back to players</a>
+</div>
+
+<form asp-action="EditPlayerPrivileges" method="post" class="card shadow-sm">
+    @Html.AntiForgeryToken()
+    <input type="hidden" asp-for="GameId" />
+    <input type="hidden" asp-for="UserId" />
+    <div class="card-body">
+        <div class="mb-3">
+            <div class="fw-semibold">Player</div>
+            <div class="text-muted">@Model.UserName</div>
+        </div>
+
+        <div class="fw-semibold mb-2">Privileges</div>
+        <div class="row row-cols-1 row-cols-md-2 g-2">
+            @foreach (var privilege in allPrivileges)
+            {
+                var isChecked = Model.Privileges.HasFlag(privilege);
+                <div class="col">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" name="SelectedPrivileges" value="@privilege" id="priv_@privilege" @(isChecked ? "checked" : "") />
+                        <label class="form-check-label" for="priv_@privilege">@privilege</label>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+    <div class="card-footer text-end">
+        <button type="submit" class="btn btn-primary">Save privileges</button>
+    </div>
+</form>

@@ -56,6 +56,7 @@ namespace DnDInventorySystem.Controllers
                 .Where(c => c.GameId == game.Id)
                 .OrderBy(c => c.Name);
             var isOwner = await IsOwnerAsync(game.Id);
+            var privileges = await GetUserPrivilegesAsync(game.Id, isOwner);
             var itemsQuery = _context.Items
                 .Include(i => i.Category)
                 .Where(i => i.GameId == game.Id)
@@ -76,6 +77,7 @@ namespace DnDInventorySystem.Controllers
                 CategoryCount = await categoriesQuery.CountAsync()
             };
 
+            ViewBag.Privileges = privileges;
             await SetHistorySidebarAsync(game.Id, isOwner);
             return View(viewModel);
         }
@@ -223,12 +225,32 @@ namespace DnDInventorySystem.Controllers
                 .OrderBy(rp => rp.User.Name)
                 .ToListAsync();
 
+            var allowedPrivileges = new[]
+            {
+                GamePrivilege.CreateCategories,
+                GamePrivilege.EditCategories,
+                GamePrivilege.DeleteCategories,
+                GamePrivilege.ViewCategories,
+                GamePrivilege.CreateItems,
+                GamePrivilege.EditItems,
+                GamePrivilege.DeleteItems,
+                GamePrivilege.ViewItems,
+                GamePrivilege.CreateCharacters,
+                GamePrivilege.EditCharacters,
+                GamePrivilege.DeleteCharacters,
+                GamePrivilege.ViewCharacters,
+                GamePrivilege.EditCharacterInventory,
+                GamePrivilege.RemoveItemsFromCharacters,
+                GamePrivilege.AddItemsToCharacters
+            };
+
             var viewModel = new GamePlayersViewModel
             {
                 Game = game,
                 Players = players
             };
 
+            ViewBag.AllowedPrivileges = allowedPrivileges;
             await SetHistorySidebarAsync(game.Id, true);
             return View(viewModel);
         }
@@ -261,6 +283,82 @@ namespace DnDInventorySystem.Controllers
                 TempData["GameMessage"] = "Player removed from the game.";
             }
 
+            return RedirectToAction(nameof(Players), new { id = game.Id });
+        }
+
+        public async Task<IActionResult> EditPlayerPrivileges(int gameId, int userId)
+        {
+            var game = await GetOwnedGameAsync(gameId);
+            if (game == null)
+            {
+                return NotFound();
+            }
+
+            if (userId == game.CreatedByUserId)
+            {
+                TempData["GameMessage"] = "You cannot change privileges for the game owner.";
+                return RedirectToAction(nameof(Players), new { id = game.Id });
+            }
+
+            var role = await _context.UserGameRoles
+                .Include(rp => rp.User)
+                .FirstOrDefaultAsync(rp => rp.GameId == game.Id && rp.UserId == userId);
+            if (role == null)
+            {
+                return NotFound();
+            }
+
+            var viewModel = new EditPlayerPrivilegesViewModel
+            {
+                GameId = game.Id,
+                UserId = role.UserId,
+                UserName = role.User?.Name ?? "Player",
+                Privileges = role.Privileges,
+                SelectedPrivileges = Enum.GetValues(typeof(GamePrivilege))
+                    .Cast<GamePrivilege>()
+                    .Where(p => role.Privileges.HasFlag(p) && p != GamePrivilege.None && p != GamePrivilege.All)
+                    .ToList()
+            };
+
+            await SetHistorySidebarAsync(game.Id, true);
+            return View(viewModel);
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> EditPlayerPrivileges(EditPlayerPrivilegesViewModel model)
+        {
+            var game = await GetOwnedGameAsync(model.GameId);
+            if (game == null)
+            {
+                return NotFound();
+            }
+
+            if (model.UserId == game.CreatedByUserId)
+            {
+                TempData["GameMessage"] = "You cannot change privileges for the game owner.";
+                return RedirectToAction(nameof(Players), new { id = game.Id });
+            }
+
+            var role = await _context.UserGameRoles.FirstOrDefaultAsync(rp => rp.GameId == game.Id && rp.UserId == model.UserId);
+            if (role == null)
+            {
+                return NotFound();
+            }
+
+            var newPrivileges = GamePrivilege.None;
+            if (model.SelectedPrivileges != null)
+            {
+                foreach (var privilege in model.SelectedPrivileges)
+                {
+                    newPrivileges |= privilege;
+                }
+            }
+
+            role.Privileges = newPrivileges;
+            await _context.SaveChangesAsync();
+
+            TempData["GameMessage"] = $"Updated privileges for {model.UserName}.";
             return RedirectToAction(nameof(Players), new { id = game.Id });
         }
 
@@ -433,6 +531,23 @@ namespace DnDInventorySystem.Controllers
             var userId = GetCurrentUserId();
             return await _context.Games.AnyAsync(g => g.Id == gameId && g.CreatedByUserId == userId)
                 || await _context.UserGameRoles.AnyAsync(r => r.GameId == gameId && r.UserId == userId && r.IsOwner);
+        }
+
+        private async Task<GamePrivilege> GetUserPrivilegesAsync(int gameId, bool? isOwner = null)
+        {
+            var ownerFlag = isOwner ?? await IsOwnerAsync(gameId);
+            if (ownerFlag)
+            {
+                return GamePrivilege.All;
+            }
+
+            var userId = GetCurrentUserId();
+            var privileges = await _context.UserGameRoles
+                .Where(r => r.GameId == gameId && r.UserId == userId)
+                .Select(r => r.Privileges)
+                .FirstOrDefaultAsync();
+
+            return privileges;
         }
 
         private async Task SetHistorySidebarAsync(int gameId, bool? isOwner = null)

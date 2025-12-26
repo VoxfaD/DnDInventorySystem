@@ -11,6 +11,8 @@ namespace DnDInventorySystem.ViewModels
         [ValidateNever]
         public Character Character { get; set; }
         public List<AssignItemRow> Assignments { get; set; } = new();
+        public int Page { get; set; }
+        public int TotalPages { get; set; }
     }
 
     public class AssignItemRow
