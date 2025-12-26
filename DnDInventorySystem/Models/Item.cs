@@ -13,6 +13,7 @@ namespace DnDInventorySystem.Models
 
         public string Description { get; set; } = "";
         public string? PhotoUrl { get; set; }
+        public bool ViewableToPlayers { get; set; } = true;
 
         public int GameId { get; set; }
         public Game? Game { get; set; }

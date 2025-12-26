@@ -9,8 +9,7 @@ namespace DnDInventorySystem.Data
             : base(options) { }
 
         public DbSet<User> Users { get; set; }
-        public DbSet<Role> Roles { get; set; }
-        public DbSet<RolePerson> RolePersons { get; set; }
+        public DbSet<UserGameRole> UserGameRoles { get; set; }
         public DbSet<Game> Games { get; set; }
         public DbSet<Character> Characters { get; set; }
         public DbSet<Item> Items { get; set; }
@@ -47,7 +46,8 @@ namespace DnDInventorySystem.Data
                 GameId = 1,
                 CreatedByUserId = 1,
                 CategoryId = categories[i % 10].Id,          // ← use first 10 categories
-                PhotoUrl = ""
+                PhotoUrl = "",
+                ViewableToPlayers = true
             }).ToArray();
 
             // items for game 2
@@ -63,21 +63,22 @@ namespace DnDInventorySystem.Data
                 GameId = 2,
                 CreatedByUserId = 2,
                 CategoryId = categories[10 + (i % 10)].Id,   // ← use the 10 categories for game 2
-                PhotoUrl = ""
+                PhotoUrl = "",
+                ViewableToPlayers = true
             }).ToArray();
 
 
             var chars1 = new[]
             {
-                new Character { Id = 1, Name = "Aria", Description = "Ranger", GameId = 1, CreatedByUserId = 1, OwnerUserId = 1 },
-                new Character { Id = 2, Name = "Bram", Description = "Cleric", GameId = 1, CreatedByUserId = 1, OwnerUserId = 1 },
-                new Character { Id = 3, Name = "Celeste", Description = "Wizard", GameId = 1, CreatedByUserId = 1, OwnerUserId = 1 }
+                new Character { Id = 1, Name = "Aria", Description = "Ranger", GameId = 1, CreatedByUserId = 1, OwnerUserId = 1, ViewableToPlayers = true },
+                new Character { Id = 2, Name = "Bram", Description = "Cleric", GameId = 1, CreatedByUserId = 1, OwnerUserId = 1, ViewableToPlayers = true },
+                new Character { Id = 3, Name = "Celeste", Description = "Wizard", GameId = 1, CreatedByUserId = 1, OwnerUserId = 1, ViewableToPlayers = true }
             };
             var chars2 = new[]
             {
-                new Character { Id = 101, Name = "Dante", Description = "Fighter", GameId = 2, CreatedByUserId = 2, OwnerUserId = 2 },
-                new Character { Id = 102, Name = "Elara", Description = "Druid",  GameId = 2, CreatedByUserId = 2, OwnerUserId = 2 },
-                new Character { Id = 103, Name = "Felix", Description = "Rogue",  GameId = 2, CreatedByUserId = 2, OwnerUserId = 2 }
+                new Character { Id = 101, Name = "Dante", Description = "Fighter", GameId = 2, CreatedByUserId = 2, OwnerUserId = 2, ViewableToPlayers = true },
+                new Character { Id = 102, Name = "Elara", Description = "Druid",  GameId = 2, CreatedByUserId = 2, OwnerUserId = 2, ViewableToPlayers = true },
+                new Character { Id = 103, Name = "Felix", Description = "Rogue",  GameId = 2, CreatedByUserId = 2, OwnerUserId = 2, ViewableToPlayers = true }
             };
 
             modelBuilder.Entity<User>().HasData(user1, user2);
@@ -85,6 +86,11 @@ namespace DnDInventorySystem.Data
             modelBuilder.Entity<Category>().HasData(categories);
             modelBuilder.Entity<Item>().HasData(items1.Concat(items2).ToArray());
             modelBuilder.Entity<Character>().HasData(chars1.Concat(chars2).ToArray());
+            modelBuilder.Entity<UserGameRole>().HasData(new[]
+            {
+                new UserGameRole { Id = 1, GameId = 1, UserId = 1, IsOwner = true, Privileges = GamePrivilege.All },
+                new UserGameRole { Id = 2, GameId = 2, UserId = 2, IsOwner = true, Privileges = GamePrivilege.All }
+            });
             // --- END SEED DATA ---
 
             // Unique email
@@ -171,24 +177,22 @@ namespace DnDInventorySystem.Data
                 .HasIndex(ic => new { ic.CharacterId, ic.ItemId })
                 .IsUnique();
 
-            // ROLE-PERSON
-            modelBuilder.Entity<RolePerson>()
+            // USER-GAME-ROLE
+            modelBuilder.Entity<UserGameRole>()
                 .HasOne(rp => rp.User)
                 .WithMany()
                 .HasForeignKey(rp => rp.UserId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            modelBuilder.Entity<RolePerson>()
-                .HasOne(rp => rp.Role)
-                .WithMany(r => r.RolePersons)
-                .HasForeignKey(rp => rp.RoleId)
-                .OnDelete(DeleteBehavior.Cascade);
-
-            modelBuilder.Entity<RolePerson>()
+            modelBuilder.Entity<UserGameRole>()
                 .HasOne(rp => rp.Game)
-                .WithMany(g => g.RolePersons)
+                .WithMany(g => g.UserGameRoles)
                 .HasForeignKey(rp => rp.GameId)
                 .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<UserGameRole>()
+                .HasIndex(rp => new { rp.GameId, rp.UserId })
+                .IsUnique();
 
             // HISTORY LOG
             modelBuilder.Entity<HistoryLog>()

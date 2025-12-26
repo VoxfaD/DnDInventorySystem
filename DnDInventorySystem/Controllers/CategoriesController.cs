@@ -42,13 +42,28 @@ namespace DnDInventorySystem.Controllers
             var categories = await _context.Categories
                 .Include(c => c.CreatedByUser)
                 .Include(c => c.Game)
+                .Include(c => c.Items)
                 .Where(c => c.GameId == game.Id)
                 .OrderBy(c => c.Name)
                 .ToListAsync();
 
+            var isOwner = await IsOwnerAsync(game.Id);
+            var currentUserId = GetCurrentUserId();
+            if (!isOwner)
+            {
+                foreach (var category in categories)
+                {
+                    category.Items = category.Items
+                        .Where(i => i.ViewableToPlayers || i.CreatedByUserId == currentUserId)
+                        .ToList();
+                }
+            }
+
             ViewData["CurrentGameId"] = game.Id;
             ViewData["CurrentGameName"] = game.Name;
-            await SetHistorySidebarAsync(game.Id);
+            ViewBag.IsOwner = isOwner;
+            ViewBag.CurrentUserId = currentUserId;
+            await SetHistorySidebarAsync(game.Id, isOwner);
             return View(categories);
         }
 
@@ -69,7 +84,9 @@ namespace DnDInventorySystem.Controllers
                 return NotFound();
             }
 
-            await SetHistorySidebarAsync(category.GameId);
+            var isOwner = await IsOwnerAsync(category.GameId);
+            ViewBag.CanEditCategory = isOwner || category.CreatedByUserId == GetCurrentUserId();
+            await SetHistorySidebarAsync(category.GameId, isOwner);
             return View(category);
         }
 
@@ -87,8 +104,14 @@ namespace DnDInventorySystem.Controllers
                 return NotFound();
             }
 
+            var isOwner = await IsOwnerAsync(game.Id);
+            if (!isOwner)
+            {
+                return Forbid();
+            }
+
             PopulateCategoryCreateView(game);
-            await SetHistorySidebarAsync(game.Id);
+            await SetHistorySidebarAsync(game.Id, isOwner);
             return View();
         }
 
@@ -105,6 +128,12 @@ namespace DnDInventorySystem.Controllers
                 return NotFound();
             }
 
+            var isOwner = await IsOwnerAsync(game.Id);
+            if (!isOwner)
+            {
+                return Forbid();
+            }
+
             category.GameId = game.Id;
             category.CreatedByUserId = GetCurrentUserId();
 
@@ -118,7 +147,7 @@ namespace DnDInventorySystem.Controllers
             }
 
             PopulateCategoryCreateView(game);
-            await SetHistorySidebarAsync(game.Id);
+            await SetHistorySidebarAsync(game.Id, isOwner);
             return View(category);
         }
 
@@ -135,7 +164,15 @@ namespace DnDInventorySystem.Controllers
             {
                 return NotFound();
             }
-            await SetHistorySidebarAsync(category.GameId);
+
+            var isOwner = await IsOwnerAsync(category.GameId);
+            if (!isOwner)
+            {
+                return Forbid();
+            }
+
+            ViewBag.IsOwner = isOwner;
+            await SetHistorySidebarAsync(category.GameId, isOwner);
             return View(category);
         }
 
@@ -151,16 +188,22 @@ namespace DnDInventorySystem.Controllers
                 return NotFound();
             }
 
+            var category = await _context.Categories.FirstOrDefaultAsync(c => c.Id == id);
+            if (category == null)
+            {
+                return NotFound();
+            }
+
+            var isOwner = await IsOwnerAsync(category.GameId);
+            if (!isOwner)
+            {
+                return Forbid();
+            }
+
             if (ModelState.IsValid)
             {
                 try
                 {
-                    var category = await _context.Categories.FirstOrDefaultAsync(c => c.Id == id);
-                    if (category == null)
-                    {
-                        return NotFound();
-                    }
-
                     var oldName = category.Name;
                     category.Name = formCategory.Name;
                     await _context.SaveChangesAsync();
@@ -174,6 +217,8 @@ namespace DnDInventorySystem.Controllers
                     {
                         await LogAsync(category.GameId, "CategoryEdited", $"Category {category.Name} edited by {actor}", categoryId: category.Id);
                     }
+
+                    return RedirectToAction(nameof(Index), new { gameId = category.GameId });
                 }
                 catch (DbUpdateConcurrencyException)
                 {
@@ -181,16 +226,14 @@ namespace DnDInventorySystem.Controllers
                     {
                         return NotFound();
                     }
-                    else
-                {
+
                     throw;
                 }
             }
-            return RedirectToAction(nameof(Index), new { gameId = formCategory.GameId });
+
+            await SetHistorySidebarAsync(category.GameId, isOwner);
+            return View(formCategory);
         }
-        await SetHistorySidebarAsync(formCategory.GameId);
-        return View(formCategory);
-    }
 
         // GET: Categories/Delete/5
         public async Task<IActionResult> Delete(int? id)
@@ -209,6 +252,14 @@ namespace DnDInventorySystem.Controllers
                 return NotFound();
             }
 
+            var isOwner = await IsOwnerAsync(category.GameId);
+            if (!isOwner)
+            {
+                return Forbid();
+            }
+
+            ViewBag.IsOwner = isOwner;
+            await SetHistorySidebarAsync(category.GameId, isOwner);
             return View(category);
         }
 
@@ -220,6 +271,12 @@ namespace DnDInventorySystem.Controllers
             var category = await _context.Categories.FirstOrDefaultAsync(c => c.Id == id);
             if (category != null)
             {
+                var isOwner = await IsOwnerAsync(category.GameId);
+                if (!isOwner)
+                {
+                    return Forbid();
+                }
+
                 var actor = await GetCurrentUserNameAsync();
                 await LogAsync(category.GameId, "CategoryDeleted", $"Category {category.Name} deleted by {actor}", categoryId: category.Id);
                 _context.Categories.Remove(category);
@@ -260,12 +317,13 @@ namespace DnDInventorySystem.Controllers
             return _historyLog.LogAsync(gameId, GetCurrentUserId(), action, details, characterId, itemId, categoryId);
         }
 
-        private async Task SetHistorySidebarAsync(int gameId)
+        private async Task SetHistorySidebarAsync(int gameId, bool? isOwner = null)
         {
+            var ownerFlag = isOwner ?? await IsOwnerAsync(gameId);
             ViewBag.HistorySidebar = new ViewModels.HistorySidebarViewModel
             {
                 GameId = gameId,
-                Logs = await _historyLog.GetRecentAsync(gameId)
+                Logs = await _historyLog.GetRecentAsync(gameId, GetCurrentUserId(), ownerFlag)
             };
         }
 
@@ -275,13 +333,20 @@ namespace DnDInventorySystem.Controllers
             return _context.Games
                 .FirstOrDefaultAsync(g => g.Id == gameId &&
                     (g.CreatedByUserId == userId ||
-                     g.RolePersons.Any(rp => rp.UserId == userId)));
+                     g.UserGameRoles.Any(rp => rp.UserId == userId)));
         }
 
         private void PopulateCategoryCreateView(Game game)
         {
             ViewData["CurrentGameId"] = game.Id;
             ViewData["CurrentGameName"] = game.Name;
+        }
+
+        private async Task<bool> IsOwnerAsync(int gameId)
+        {
+            var userId = GetCurrentUserId();
+            return await _context.Games.AnyAsync(g => g.Id == gameId && g.CreatedByUserId == userId)
+                || await _context.UserGameRoles.AnyAsync(r => r.GameId == gameId && r.UserId == userId && r.IsOwner);
         }
     }
 }

@@ -43,13 +43,28 @@ namespace DnDInventorySystem.Controllers
             if (gameId.HasValue)
             {
                 charactersQuery = charactersQuery.Where(c => c.GameId == gameId.Value);
+                var isOwner = await IsOwnerAsync(gameId.Value);
+                var userId = GetCurrentUserId();
+                if (!isOwner)
+                {
+                    charactersQuery = charactersQuery.Where(c =>
+                        c.ViewableToPlayers ||
+                        c.OwnerUserId == userId ||
+                        c.CreatedByUserId == userId);
+                }
                 ViewData["CurrentGameId"] = gameId.Value;
                 ViewData["CurrentGameName"] = await _context.Games
                     .Where(g => g.Id == gameId.Value)
                     .Select(g => g.Name)
                     .FirstOrDefaultAsync();
+                ViewBag.IsOwner = isOwner;
+                ViewBag.CurrentUserId = userId;
             }
 
+            if (ViewBag.CurrentUserId == null)
+            {
+                ViewBag.CurrentUserId = GetCurrentUserId();
+            }
             return View(await charactersQuery.ToListAsync());
         }
 
@@ -67,8 +82,16 @@ namespace DnDInventorySystem.Controllers
                 return NotFound();
             }
 
+            var isOwner = await IsOwnerAsync(character.GameId);
+            var userId = GetCurrentUserId();
+            if (!isOwner && !character.ViewableToPlayers && character.OwnerUserId != userId && character.CreatedByUserId != userId)
+            {
+                return NotFound();
+            }
+
+            ViewBag.CanEditCharacter = isOwner || character.CreatedByUserId == userId || character.OwnerUserId == userId;
             var viewModel = await BuildCharacterInventoryViewModel(character);
-            await SetHistorySidebarAsync(character.GameId);
+            await SetHistorySidebarAsync(character.GameId, isOwner);
             return View(viewModel);
         }
 
@@ -86,15 +109,17 @@ namespace DnDInventorySystem.Controllers
                 return NotFound();
             }
 
+            var isOwner = await IsOwnerAsync(game.Id);
+            ViewBag.IsOwner = isOwner;
             await PopulateCharacterCreateViewAsync(game);
-            await SetHistorySidebarAsync(game.Id);
+            await SetHistorySidebarAsync(game.Id, isOwner);
             return View();
         }
 
         // POST: Characters/Create
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create(int gameId, [Bind("Name,Description,OwnerUserId")] Character character, IFormFile? photoFile)
+        public async Task<IActionResult> Create(int gameId, [Bind("Name,Description,OwnerUserId,ViewableToPlayers")] Character character, IFormFile? photoFile)
         {
             var game = await GetAuthorizedGameAsync(gameId);
             if (game == null)
@@ -111,6 +136,11 @@ namespace DnDInventorySystem.Controllers
             character.GameId = game.Id;
             character.CreatedByUserId = GetCurrentUserId();
             character.PhotoUrl = string.Empty;
+            var isOwner = await IsOwnerAsync(game.Id);
+            if (!isOwner)
+            {
+                character.ViewableToPlayers = true;
+            }
 
             if (ModelState.IsValid)
             {
@@ -133,7 +163,8 @@ namespace DnDInventorySystem.Controllers
             }
 
             await PopulateCharacterCreateViewAsync(game, character.OwnerUserId, validOwners);
-            await SetHistorySidebarAsync(game.Id);
+            ViewBag.IsOwner = isOwner;
+            await SetHistorySidebarAsync(game.Id, isOwner);
             return View(character);
         }
 
@@ -151,15 +182,22 @@ namespace DnDInventorySystem.Controllers
                 return NotFound();
             }
 
+            var isOwner = await IsOwnerAsync(character.GameId);
+            if (!isOwner && character.OwnerUserId != GetCurrentUserId() && character.CreatedByUserId != GetCurrentUserId())
+            {
+                return Forbid();
+            }
+
             await PopulateCharacterEditViewAsync(character, character.OwnerUserId);
-            await SetHistorySidebarAsync(character.GameId);
+            ViewBag.IsOwner = isOwner;
+            await SetHistorySidebarAsync(character.GameId, isOwner);
             return View(character);
         }
 
         // POST: Characters/Edit/5
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int id, [Bind("Id,Name,Description,OwnerUserId")] Character formCharacter, IFormFile? photoFile)
+        public async Task<IActionResult> Edit(int id, [Bind("Id,Name,Description,OwnerUserId,ViewableToPlayers")] Character formCharacter, IFormFile? photoFile)
         {
             if (id != formCharacter.Id)
             {
@@ -170,6 +208,13 @@ namespace DnDInventorySystem.Controllers
             if (character == null)
             {
                 return NotFound();
+            }
+
+            var isOwner = await IsOwnerAsync(character.GameId);
+            var userId = GetCurrentUserId();
+            if (!isOwner && character.OwnerUserId != userId && character.CreatedByUserId != userId)
+            {
+                return Forbid();
             }
 
             var validOwners = await GetGameUsersAsync(character.Game);
@@ -186,6 +231,10 @@ namespace DnDInventorySystem.Controllers
                 character.Name = formCharacter.Name;
                 character.Description = formCharacter.Description;
                 character.OwnerUserId = formCharacter.OwnerUserId;
+                if (isOwner)
+                {
+                    character.ViewableToPlayers = formCharacter.ViewableToPlayers;
+                }
                 var uploadedPath = await SaveImageAsync(photoFile);
                 if (!string.IsNullOrWhiteSpace(uploadedPath))
                 {
@@ -205,7 +254,8 @@ namespace DnDInventorySystem.Controllers
             character.Name = formCharacter.Name;
             character.Description = formCharacter.Description;
             character.OwnerUserId = formCharacter.OwnerUserId;
-            await SetHistorySidebarAsync(character.GameId);
+            ViewBag.IsOwner = isOwner;
+            await SetHistorySidebarAsync(character.GameId, isOwner);
             return View(character);
         }
 
@@ -227,6 +277,14 @@ namespace DnDInventorySystem.Controllers
                 return NotFound();
             }
 
+            var isOwner = await IsOwnerAsync(character.GameId);
+            if (!isOwner)
+            {
+                return Forbid();
+            }
+
+            ViewBag.IsOwner = isOwner;
+            await SetHistorySidebarAsync(character.GameId, isOwner);
             return View(character);
         }
 
@@ -238,6 +296,12 @@ namespace DnDInventorySystem.Controllers
             var character = await _context.Characters.FirstOrDefaultAsync(c => c.Id == id);
             if (character != null)
             {
+                var isOwner = await IsOwnerAsync(character.GameId);
+                if (!isOwner)
+                {
+                    return Forbid();
+                }
+
                 var actorName = await GetCurrentUserNameAsync();
                 await LogAsync(character.GameId, "CharacterDeleted", $"Character {character.Name} deleted by {actorName}", characterId: character.Id);
                 _context.Characters.Remove(character);
@@ -255,6 +319,13 @@ namespace DnDInventorySystem.Controllers
             if (character == null)
             {
                 return NotFound();
+            }
+
+            var isOwner = await IsOwnerAsync(character.GameId);
+            var userId = GetCurrentUserId();
+            if (!isOwner && character.OwnerUserId != userId && character.CreatedByUserId != userId)
+            {
+                return Forbid();
             }
 
             var entry = await _context.ItemCharacters
@@ -279,6 +350,13 @@ namespace DnDInventorySystem.Controllers
             if (character == null)
             {
                 return NotFound();
+            }
+
+            var isOwner = await IsOwnerAsync(character.GameId);
+            var userId = GetCurrentUserId();
+            if (!isOwner && character.OwnerUserId != userId && character.CreatedByUserId != userId)
+            {
+                return Forbid();
             }
 
             if (updates == null || updates.Count == 0)
@@ -356,12 +434,12 @@ namespace DnDInventorySystem.Controllers
             return _context.Games
                 .FirstOrDefaultAsync(g => g.Id == gameId &&
                     (g.CreatedByUserId == userId ||
-                     g.RolePersons.Any(rp => rp.UserId == userId)));
+                     g.UserGameRoles.Any(rp => rp.UserId == userId)));
         }
 
         private async Task<List<User>> GetGameUsersAsync(Game game)
         {
-            var participantIds = await _context.RolePersons
+            var participantIds = await _context.UserGameRoles
                 .Where(rp => rp.GameId == game.Id)
                 .Select(rp => rp.UserId)
                 .ToListAsync();
@@ -400,8 +478,15 @@ namespace DnDInventorySystem.Controllers
                 return NotFound();
             }
 
+            var isOwner = await IsOwnerAsync(character.GameId);
+            var userId = GetCurrentUserId();
+            if (!isOwner && character.OwnerUserId != userId && character.CreatedByUserId != userId)
+            {
+                return Forbid();
+            }
+
             var viewModel = await BuildCharacterAssignItemsViewModel(character);
-            await SetHistorySidebarAsync(character.GameId);
+            await SetHistorySidebarAsync(character.GameId, isOwner);
             return View(viewModel);
         }
 
@@ -421,6 +506,13 @@ namespace DnDInventorySystem.Controllers
                 return NotFound();
             }
 
+            var isOwner = await IsOwnerAsync(character.GameId);
+            var userId = GetCurrentUserId();
+            if (!isOwner && character.OwnerUserId != userId && character.CreatedByUserId != userId)
+            {
+                return Forbid();
+            }
+
             if (model.Assignments == null || !model.Assignments.Any(a => a.Selected))
             {
                 ModelState.AddModelError(string.Empty, "Select at least one item to assign.");
@@ -429,7 +521,7 @@ namespace DnDInventorySystem.Controllers
             if (!ModelState.IsValid)
             {
                 var vm = await BuildCharacterAssignItemsViewModel(character);
-                await SetHistorySidebarAsync(character.GameId);
+                await SetHistorySidebarAsync(character.GameId, isOwner);
                 return View(vm);
             }
 
@@ -555,12 +647,13 @@ namespace DnDInventorySystem.Controllers
             };
         }
 
-        private async Task SetHistorySidebarAsync(int gameId)
+        private async Task SetHistorySidebarAsync(int gameId, bool? isOwner = null)
         {
+            var ownerFlag = isOwner ?? await IsOwnerAsync(gameId);
             ViewBag.HistorySidebar = new HistorySidebarViewModel
             {
                 GameId = gameId,
-                Logs = await _historyLog.GetRecentAsync(gameId)
+                Logs = await _historyLog.GetRecentAsync(gameId, GetCurrentUserId(), ownerFlag)
             };
         }
 
@@ -577,6 +670,13 @@ namespace DnDInventorySystem.Controllers
         private Task LogAsync(int gameId, string action, string details, int? characterId = null, int? itemId = null, int? categoryId = null)
         {
             return _historyLog.LogAsync(gameId, GetCurrentUserId(), action, details, characterId, itemId, categoryId);
+        }
+
+        private async Task<bool> IsOwnerAsync(int gameId)
+        {
+            var userId = GetCurrentUserId();
+            return await _context.Games.AnyAsync(g => g.Id == gameId && g.CreatedByUserId == userId)
+                || await _context.UserGameRoles.AnyAsync(r => r.GameId == gameId && r.UserId == userId && r.IsOwner);
         }
 
         private async Task<string?> SaveImageAsync(IFormFile? file)

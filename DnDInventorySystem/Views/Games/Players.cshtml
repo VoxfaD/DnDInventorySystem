@@ -38,7 +38,7 @@
                         <td class="fw-semibold">@player.User?.Name</td>
                         <td class="text-muted small">@player.User?.Email</td>
                         <td class="text-muted small">
-                            @(isOwner ? "Owner" : player.Role?.Name ?? "Player")
+                            @(isOwner ? "Owner" : "Player")
                         </td>
                         <td class="text-end">
                             @if (isOwner)

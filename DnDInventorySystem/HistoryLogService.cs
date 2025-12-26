@@ -35,14 +35,44 @@ namespace DnDInventorySystem
             await _context.SaveChangesAsync();
         }
 
-        public async Task<List<HistoryLog>> GetRecentAsync(int gameId, int take = 30)
+        public async Task<List<HistoryLog>> GetRecentAsync(int gameId, int requestingUserId, bool isOwner, int take = 30)
         {
-            return await _context.HistoryLogs
+            var query = _context.HistoryLogs
                 .Where(h => h.GameId == gameId)
                 .Include(h => h.User)
                 .Include(h => h.Character)
                 .Include(h => h.Item)
                 .Include(h => h.Category)
+                .AsQueryable();
+
+            if (!isOwner)
+            {
+                var playerCharacterIds = await _context.Characters
+                    .Where(c => c.GameId == gameId &&
+                                (c.OwnerUserId == requestingUserId || c.CreatedByUserId == requestingUserId))
+                    .Select(c => c.Id)
+                    .ToListAsync();
+
+                var playerItemIds = await _context.Items
+                    .Where(i => i.GameId == gameId && i.CreatedByUserId == requestingUserId)
+                    .Select(i => i.Id)
+                    .ToListAsync();
+
+                var itemsOnPlayerCharacters = await _context.ItemCharacters
+                    .Where(ic => ic.Character.GameId == gameId && playerCharacterIds.Contains(ic.CharacterId))
+                    .Select(ic => ic.ItemId)
+                    .Distinct()
+                    .ToListAsync();
+
+                var relevantItemIds = new HashSet<int>(playerItemIds.Concat(itemsOnPlayerCharacters));
+
+                query = query.Where(h =>
+                    h.UserId == requestingUserId ||
+                    (h.CharacterId.HasValue && playerCharacterIds.Contains(h.CharacterId.Value)) ||
+                    (h.ItemId.HasValue && relevantItemIds.Contains(h.ItemId.Value)));
+            }
+
+            return await query
                 .OrderByDescending(h => h.Timestamp)
                 .Take(take)
                 .ToListAsync();

@@ -25,7 +25,7 @@ namespace DnDInventorySystem.Models
         public ICollection<Character> Characters { get; set; } = new List<Character>();
         public ICollection<Category> Categories { get; set; } = new List<Category>();
         public ICollection<Item> Items { get; set; } = new List<Item>();
-        public ICollection<RolePerson> RolePersons { get; set; } = new List<RolePerson>();
+        public ICollection<UserGameRole> UserGameRoles { get; set; } = new List<UserGameRole>();
         public ICollection<HistoryLog> HistoryLogs { get; set; } = new List<HistoryLog>();
     }
 }

@@ -150,6 +150,67 @@ namespace DnDInventorySystem.Controllers
             return RedirectToAction(nameof(Login));
         }
 
+        [Authorize]
+        public async Task<IActionResult> Profile()
+        {
+            var user = await _context.Users.FindAsync(GetCurrentUserId());
+            if (user == null)
+            {
+                return RedirectToAction(nameof(Login));
+            }
+
+            var vm = new UpdateProfileViewModel
+            {
+                DisplayName = user.Name,
+                Email = user.Email
+            };
+
+            return View(vm);
+        }
+
+        [Authorize]
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Profile(UpdateProfileViewModel model)
+        {
+            var user = await _context.Users.FindAsync(GetCurrentUserId());
+            if (user == null)
+            {
+                return RedirectToAction(nameof(Login));
+            }
+
+            if (!ModelState.IsValid)
+            {
+                return View(model);
+            }
+
+            var wantsPasswordChange = !string.IsNullOrWhiteSpace(model.NewPassword);
+            if (wantsPasswordChange && string.IsNullOrWhiteSpace(model.CurrentPassword))
+            {
+                ModelState.AddModelError(nameof(model.CurrentPassword), "Enter your current password to set a new one.");
+                return View(model);
+            }
+
+            if (wantsPasswordChange)
+            {
+                if (!await VerifyPasswordAsync(user, model.CurrentPassword!))
+                {
+                    ModelState.AddModelError(nameof(model.CurrentPassword), "Current password is incorrect.");
+                    return View(model);
+                }
+
+                user.PasswordHash = _passwordHasher.HashPassword(user, model.NewPassword!);
+            }
+
+            user.Name = model.DisplayName.Trim();
+            _context.Users.Update(user);
+            await _context.SaveChangesAsync();
+
+            await SignInUserAsync(user); // refresh claims with updated name
+            TempData["ProfileMessage"] = "Profile updated.";
+            return RedirectToAction(nameof(Profile));
+        }
+
         private async Task SignInUserAsync(User user)
         {
             var claims = new List<Claim>
@@ -163,6 +224,34 @@ namespace DnDInventorySystem.Controllers
             var principal = new ClaimsPrincipal(identity);
 
             await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, principal);
+        }
+
+        private int GetCurrentUserId()
+        {
+            var claimValue = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrEmpty(claimValue))
+            {
+                throw new InvalidOperationException("User identifier claim is missing.");
+            }
+
+            return int.Parse(claimValue);
+        }
+
+        private async Task<bool> VerifyPasswordAsync(User user, string password)
+        {
+            PasswordVerificationResult result;
+            try
+            {
+                result = _passwordHasher.VerifyHashedPassword(user, user.PasswordHash, password);
+            }
+            catch (FormatException)
+            {
+                result = string.Equals(user.PasswordHash, password, StringComparison.Ordinal)
+                    ? PasswordVerificationResult.Success
+                    : PasswordVerificationResult.Failed;
+            }
+
+            return result != PasswordVerificationResult.Failed;
         }
     }
 }

@@ -15,7 +15,6 @@ namespace DnDInventorySystem.Controllers
     [Authorize]
     public class GamesController : Controller
     {
-        private const string PlayerRoleName = "Player";
         private readonly ApplicationDbContext _context;
         private readonly HistoryLogService _historyLog;
 
@@ -56,6 +55,7 @@ namespace DnDInventorySystem.Controllers
                 .Include(c => c.Owner)
                 .Where(c => c.GameId == game.Id)
                 .OrderBy(c => c.Name);
+            var isOwner = await IsOwnerAsync(game.Id);
             var itemsQuery = _context.Items
                 .Include(i => i.Category)
                 .Where(i => i.GameId == game.Id)
@@ -76,7 +76,7 @@ namespace DnDInventorySystem.Controllers
                 CategoryCount = await categoriesQuery.CountAsync()
             };
 
-            await SetHistorySidebarAsync(game.Id);
+            await SetHistorySidebarAsync(game.Id, isOwner);
             return View(viewModel);
         }
 
@@ -98,12 +98,11 @@ namespace DnDInventorySystem.Controllers
             game.CreatedByUserId = userId;
             game.CreatedAt = System.DateTime.UtcNow;
 
-            var memberRole = await EnsureRoleAsync(PlayerRoleName);
-
-            game.RolePersons.Add(new RolePerson
+            game.UserGameRoles.Add(new UserGameRole
             {
                 UserId = userId,
-                RoleId = memberRole.Id
+                IsOwner = true,
+                Privileges = PrivilegeSets.Owner
             });
 
             _context.Games.Add(game);
@@ -138,7 +137,7 @@ namespace DnDInventorySystem.Controllers
                 return NotFound();
             }
 
-            await SetHistorySidebarAsync(game.Id);
+            await SetHistorySidebarAsync(game.Id, true);
             return View(game);
         }
 
@@ -160,7 +159,7 @@ namespace DnDInventorySystem.Controllers
 
             if (!ModelState.IsValid)
             {
-                await SetHistorySidebarAsync(updatedGame.Id);
+                await SetHistorySidebarAsync(updatedGame.Id, true);
                 return View(updatedGame);
             }
 
@@ -218,9 +217,8 @@ namespace DnDInventorySystem.Controllers
                 return NotFound();
             }
 
-            var players = await _context.RolePersons
+            var players = await _context.UserGameRoles
                 .Include(rp => rp.User)
-                .Include(rp => rp.Role)
                 .Where(rp => rp.GameId == game.Id)
                 .OrderBy(rp => rp.User.Name)
                 .ToListAsync();
@@ -231,7 +229,7 @@ namespace DnDInventorySystem.Controllers
                 Players = players
             };
 
-            await SetHistorySidebarAsync(game.Id);
+            await SetHistorySidebarAsync(game.Id, true);
             return View(viewModel);
         }
 
@@ -251,12 +249,12 @@ namespace DnDInventorySystem.Controllers
                 return RedirectToAction(nameof(Players), new { id = game.Id });
             }
 
-            var rolePerson = await _context.RolePersons
+            var rolePerson = await _context.UserGameRoles
                 .FirstOrDefaultAsync(rp => rp.GameId == game.Id && rp.UserId == userId);
 
             if (rolePerson != null)
             {
-                _context.RolePersons.Remove(rolePerson);
+                _context.UserGameRoles.Remove(rolePerson);
                 await _context.SaveChangesAsync();
                 var actor = await GetCurrentUserNameAsync();
                 await LogAsync(game.Id, "UserRemoved", $"{actor} removed a player from the game", null, null, null);
@@ -353,7 +351,7 @@ namespace DnDInventorySystem.Controllers
             }
 
             var game = await _context.Games
-                .Include(g => g.RolePersons)
+                .Include(g => g.UserGameRoles)
                 .FirstOrDefaultAsync(g => g.JoinCode == code);
 
             if (game == null || string.IsNullOrWhiteSpace(game.JoinCode) || !game.JoinCodeActive)
@@ -364,23 +362,22 @@ namespace DnDInventorySystem.Controllers
 
             var userId = GetCurrentUserId();
             var alreadyMember = game.CreatedByUserId == userId ||
-                                game.RolePersons.Any(rp => rp.UserId == userId);
+                                game.UserGameRoles.Any(rp => rp.UserId == userId);
             if (alreadyMember)
             {
                 ModelState.AddModelError(nameof(model.JoinCode), "You are already part of this game.");
                 return View(model);
             }
 
-            var memberRole = await EnsureRoleAsync(PlayerRoleName);
-
-            var rolePerson = new RolePerson
+            var rolePerson = new UserGameRole
             {
                 GameId = game.Id,
                 UserId = userId,
-                RoleId = memberRole.Id
+                IsOwner = false,
+                Privileges = PrivilegeSets.Player
             };
 
-            _context.RolePersons.Add(rolePerson);
+            _context.UserGameRoles.Add(rolePerson);
             await _context.SaveChangesAsync();
             var actorName = await GetCurrentUserNameAsync();
             await LogAsync(game.Id, "UserAdded", $"{actorName} joined the game using a code", null, null, null);
@@ -393,13 +390,16 @@ namespace DnDInventorySystem.Controllers
         {
             return _context.Games.Where(g =>
                 g.CreatedByUserId == userId ||
-                g.RolePersons.Any(rp => rp.UserId == userId));
+                g.UserGameRoles.Any(rp => rp.UserId == userId));
         }
 
         private Task<Game> GetOwnedGameAsync(int id)
         {
             var userId = GetCurrentUserId();
-            return _context.Games.FirstOrDefaultAsync(g => g.Id == id && g.CreatedByUserId == userId);
+            return _context.Games.FirstOrDefaultAsync(g =>
+                g.Id == id &&
+                (g.CreatedByUserId == userId ||
+                 g.UserGameRoles.Any(r => r.UserId == userId && r.IsOwner)));
         }
 
         private int GetCurrentUserId()
@@ -428,27 +428,21 @@ namespace DnDInventorySystem.Controllers
             return _historyLog.LogAsync(gameId, GetCurrentUserId(), action, details, characterId, itemId, categoryId);
         }
 
-        private async Task SetHistorySidebarAsync(int gameId)
+        private async Task<bool> IsOwnerAsync(int gameId)
         {
+            var userId = GetCurrentUserId();
+            return await _context.Games.AnyAsync(g => g.Id == gameId && g.CreatedByUserId == userId)
+                || await _context.UserGameRoles.AnyAsync(r => r.GameId == gameId && r.UserId == userId && r.IsOwner);
+        }
+
+        private async Task SetHistorySidebarAsync(int gameId, bool? isOwner = null)
+        {
+            var ownerFlag = isOwner ?? await IsOwnerAsync(gameId);
             ViewBag.HistorySidebar = new HistorySidebarViewModel
             {
                 GameId = gameId,
-                Logs = await _historyLog.GetRecentAsync(gameId)
+                Logs = await _historyLog.GetRecentAsync(gameId, GetCurrentUserId(), ownerFlag)
             };
-        }
-
-        private async Task<Role> EnsureRoleAsync(string roleName)
-        {
-            var role = await _context.Roles.FirstOrDefaultAsync(r => r.Name == roleName);
-            if (role != null)
-            {
-                return role;
-            }
-
-            role = new Role { Name = roleName };
-            _context.Roles.Add(role);
-            await _context.SaveChangesAsync();
-            return role;
         }
 
         private async Task<string> GenerateUniqueJoinCodeAsync()

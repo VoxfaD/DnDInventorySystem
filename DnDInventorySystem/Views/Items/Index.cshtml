@@ -2,9 +2,18 @@
 
 @{
     ViewData["Title"] = "Index";
+    var currentUserId = ViewBag.CurrentUserId as int? ?? 0;
+    var isOwner = ViewBag.IsOwner as bool? ?? false;
 }
 
 <h1>Items</h1>
+
+@if (ViewData["CurrentGameId"] is int gameId)
+{
+    <div class="mb-3">
+        <a class="btn btn-link ps-0" asp-controller="Games" asp-action="Details" asp-route-id="@gameId">Back to game</a>
+    </div>
+}
 
 <p>
 @{
@@ -51,8 +60,11 @@ else
             <td class="text-muted small">@item.CreatedByUser?.Name</td>
             <td class="text-end">
                 <a class="btn btn-sm btn-outline-primary" asp-action="Details" asp-route-id="@item.Id">Details</a>
-                <a class="btn btn-sm btn-outline-secondary" asp-action="Edit" asp-route-id="@item.Id">Edit</a>
-                <a class="btn btn-sm btn-outline-danger" asp-action="Delete" asp-route-id="@item.Id">Delete</a>
+                @if (isOwner || item.CreatedByUserId == currentUserId)
+                {
+                    <a class="btn btn-sm btn-outline-secondary" asp-action="Edit" asp-route-id="@item.Id">Edit</a>
+                    <a class="btn btn-sm btn-outline-danger" asp-action="Delete" asp-route-id="@item.Id">Delete</a>
+                }
             </td>
         </tr>
 }

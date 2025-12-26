@@ -10,7 +10,10 @@
         <div class="text-muted">Game: @Model.Game?.Name · Category: @(Model.Category?.Name ?? "Uncategorized")</div>
     </div>
     <div class="d-flex gap-2">
-        <a class="btn btn-outline-secondary" asp-action="Edit" asp-route-id="@Model.Id">Edit</a>
+        @if (ViewBag.CanEditItem == true)
+        {
+            <a class="btn btn-outline-secondary" asp-action="Edit" asp-route-id="@Model.Id">Edit</a>
+        }
         <a class="btn btn-link" asp-action="Index" asp-route-gameId="@Model.GameId">Back to items</a>
     </div>
 </div>

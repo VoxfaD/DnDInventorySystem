@@ -42,6 +42,18 @@
                         </div>
                     </div>
 
+                    @if (ViewBag.IsOwner == true)
+                    {
+                        <div class="form-check mb-4">
+                            <input asp-for="ViewableToPlayers" class="form-check-input" />
+                            <label asp-for="ViewableToPlayers" class="form-check-label">Visible to other players</label>
+                        </div>
+                    }
+                    else
+                    {
+                        <input type="hidden" asp-for="ViewableToPlayers" />
+                    }
+
                     <div class="mb-4">
                         <label asp-for="OwnerUserId" class="form-label"></label>
                         <select asp-for="OwnerUserId" class="form-select" asp-items="ViewBag.OwnerUserId"></select>
