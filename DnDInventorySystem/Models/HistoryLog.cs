@@ -14,11 +14,11 @@ namespace DnDInventorySystem.Models
         public int GameId { get; set; }
         public Game Game { get; set; }
 
-        [Column("InventaraID")]
+        [Column("InventarsID")]
         public int? ItemId { get; set; }
         public Item Item { get; set; }
 
-        [Column("TelaID")]
+        [Column("TelsID")]
         public int? CharacterId { get; set; }
         public Character Character { get; set; }
 

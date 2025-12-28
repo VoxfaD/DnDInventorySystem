@@ -10,7 +10,7 @@ namespace DnDInventorySystem.Models
         public int Id { get; set; }
 
         [MaxLength(50)]
-        [Column("Vards")]
+        [Column("LietotajVards")]
         public string Name { get; set; } = "";
 
         [MaxLength(100)]

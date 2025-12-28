@@ -101,7 +101,8 @@ namespace DnDInventorySystem.Controllers
             {
                 UserId = userId,
                 IsOwner = true,
-                Privileges = PrivilegeSets.Owner
+                Privileges = PrivilegeSets.Owner,
+                PrivilegesNames = PrivilegeSets.ToNames(PrivilegeSets.Owner)
             });
 
             _context.Games.Add(game);
@@ -372,6 +373,7 @@ namespace DnDInventorySystem.Controllers
             }
 
             role.Privileges = newPrivileges;
+            role.PrivilegesNames = PrivilegeSets.ToNames(newPrivileges);
             await _context.SaveChangesAsync();
 
             TempData["GameMessage"] = $"Updated privileges for {model.UserName}.";
@@ -488,7 +490,8 @@ namespace DnDInventorySystem.Controllers
                 GameId = game.Id,
                 UserId = userId,
                 IsOwner = false,
-                Privileges = PrivilegeSets.Player
+                Privileges = PrivilegeSets.Player,
+                PrivilegesNames = PrivilegeSets.ToNames(PrivilegeSets.Player)
             };
 
             _context.UserGameRoles.Add(rolePerson);

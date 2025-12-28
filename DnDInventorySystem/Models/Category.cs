@@ -18,8 +18,8 @@ namespace DnDInventorySystem.Models
         public Game? Game { get; set; }
 
         [Column("LietotajsID")]
-        public int? CreatedByUserId { get; set; }
-        public User? CreatedByUser { get; set; }
+        public int CreatedByUserId { get; set; }
+        public User CreatedByUser { get; set; }
 
         public ICollection<Item> Items { get; set; } = new List<Item>();
     }

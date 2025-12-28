@@ -88,8 +88,8 @@ namespace DnDInventorySystem.Data
             modelBuilder.Entity<Character>().HasData(chars1.Concat(chars2).ToArray());
             modelBuilder.Entity<UserGameRole>().HasData(new[]
             {
-                new UserGameRole { Id = 1, GameId = 1, UserId = 1, IsOwner = true, Privileges = GamePrivilege.All },
-                new UserGameRole { Id = 2, GameId = 2, UserId = 2, IsOwner = true, Privileges = GamePrivilege.All }
+                new UserGameRole { Id = 1, GameId = 1, UserId = 1, IsOwner = true, Privileges = GamePrivilege.All, PrivilegesNames = PrivilegeSets.ToNames(GamePrivilege.All) },
+                new UserGameRole { Id = 2, GameId = 2, UserId = 2, IsOwner = true, Privileges = GamePrivilege.All, PrivilegesNames = PrivilegeSets.ToNames(GamePrivilege.All) }
             });
             // --- END SEED DATA ---
 

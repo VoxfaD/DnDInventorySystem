@@ -163,19 +163,12 @@ namespace DnDInventorySystem.Controllers
             category.GameId = game.Id;
             category.CreatedByUserId = GetCurrentUserId();
 
-            if (ModelState.IsValid)
-            {
+
                 _context.Add(category);
                 await _context.SaveChangesAsync();
                 var actor = await GetCurrentUserNameAsync();
                 await LogAsync(game.Id, "CategoryCreated", $"Category {category.Name} created by {actor}", categoryId: category.Id);
                 return RedirectToAction(nameof(Index), new { gameId = game.Id });
-            }
-
-            PopulateCategoryCreateView(game);
-            ViewBag.Privileges = privileges;
-            await SetHistorySidebarAsync(game.Id, isOwner);
-            return View(category);
         }
 
         // GET: Categories/Edit/5

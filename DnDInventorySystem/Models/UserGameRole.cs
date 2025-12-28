@@ -20,5 +20,9 @@ namespace DnDInventorySystem.Models
 
         [Column("Privilegijas")]
         public GamePrivilege Privileges { get; set; }
+
+        [Column("PrivilegijasNosaukumi")]
+        public string PrivilegesNames { get; set; } = string.Empty;
+
     }
 }
