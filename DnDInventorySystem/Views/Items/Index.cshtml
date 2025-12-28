@@ -45,7 +45,7 @@ else
     </thead>
     <tbody>
 @foreach (var item in Model) {
-        <tr>
+        <tr class="table-row-link" data-href="@Url.Action("Details", "Items", new { id = item.Id })">
             <td>
                 @if (!string.IsNullOrWhiteSpace(item.PhotoUrl))
                 {
@@ -61,14 +61,19 @@ else
             <td class="text-muted small">@item.Category?.Name</td>
             <td class="text-muted small">@item.CreatedByUser?.Name</td>
             <td class="text-end">
-                <a class="btn btn-sm btn-outline-primary" asp-action="Details" asp-route-id="@item.Id">Details</a>
                 @if (isOwner || (privileges.HasFlag(DnDInventorySystem.Models.GamePrivilege.EditItems) && item.CreatedByUserId == currentUserId))
                 {
                     <a class="btn btn-sm btn-outline-secondary" asp-action="Edit" asp-route-id="@item.Id">Edit</a>
                 }
                 @if (isOwner || (privileges.HasFlag(DnDInventorySystem.Models.GamePrivilege.DeleteItems) && item.CreatedByUserId == currentUserId))
                 {
-                    <a class="btn btn-sm btn-outline-danger" asp-action="Delete" asp-route-id="@item.Id">Delete</a>
+                    <form asp-action="Delete" asp-route-id="@item.Id" method="post" class="d-inline">
+                        @Html.AntiForgeryToken()
+                        <button type="submit" class="btn btn-sm btn-outline-danger"
+                                onclick="return confirm('Are you sure you want to delete @item.Name?');">
+                            Delete
+                        </button>
+                    </form>
                 }
             </td>
         </tr>

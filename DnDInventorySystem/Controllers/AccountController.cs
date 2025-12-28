@@ -39,16 +39,17 @@ namespace DnDInventorySystem.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Login(LoginViewModel model)
         {
-            // if (!ModelState.IsValid)
-            // {
-            //     return View(model);
-            // }
+            if (!ModelState.IsValid)
+            {
+                ModelState.AddModelError(string.Empty, "Please fill in all required fields!");
+                return View(model);
+            }
 
             var email = model.Email.Trim();
             var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == email);
             if (user == null)
             {
-                ModelState.AddModelError(string.Empty, "Invalid email or password.");
+                ModelState.AddModelError(string.Empty, "Incorrect email address or password!");
                 return View(model);
             }
 
@@ -75,7 +76,7 @@ namespace DnDInventorySystem.Controllers
 
             if (passwordResult == PasswordVerificationResult.Failed)
             {
-                ModelState.AddModelError(string.Empty, "Invalid email or password.");
+                ModelState.AddModelError(string.Empty, "Incorrect email address or password!");
                 return View(model);
             }
 
@@ -105,10 +106,11 @@ namespace DnDInventorySystem.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Register(RegisterViewModel model)
         {
-            // if (!ModelState.IsValid)
-            // {
-            //     return View(model);
-            // }
+            if (!ModelState.IsValid)
+            {
+                ModelState.AddModelError(string.Empty, "Please fill in all required fields!");
+                return View(model);
+            }
 
             var trimmedEmail = model.Email.Trim();
             var trimmedName = model.Name.Trim();
@@ -116,7 +118,14 @@ namespace DnDInventorySystem.Controllers
             var emailExists = await _context.Users.AnyAsync(u => u.Email == trimmedEmail);
             if (emailExists)
             {
-                ModelState.AddModelError(nameof(model.Email), "An account with this email already exists.");
+                ModelState.AddModelError(nameof(model.Email), "This email address is already registered!");
+                return View(model);
+            }
+
+            var userExists = await _context.Users.AnyAsync(u => u.Name == trimmedName);
+            if (userExists)
+            {
+                ModelState.AddModelError(nameof(model.Name), "Username already exists!");
                 return View(model);
             }
 
@@ -181,6 +190,7 @@ namespace DnDInventorySystem.Controllers
 
             if (!ModelState.IsValid)
             {
+                ModelState.AddModelError(string.Empty, "Please fill in all required fields!");
                 return View(model);
             }
 
@@ -193,6 +203,13 @@ namespace DnDInventorySystem.Controllers
 
             if (wantsPasswordChange)
             {
+                const string passwordPattern = @"^(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,128}$";
+                if (model.NewPassword!.Length < 8 || model.NewPassword.Length > 128 || !System.Text.RegularExpressions.Regex.IsMatch(model.NewPassword, passwordPattern))
+                {
+                    ModelState.AddModelError(nameof(model.NewPassword), "Password does not meet security requirements! Must contain a number and a unique symbol, such as #, must be at least an uppercase letter and the number of symbols is 8-128 symbols.");
+                    return View(model);
+                }
+
                 if (!await VerifyPasswordAsync(user, model.CurrentPassword!))
                 {
                     ModelState.AddModelError(nameof(model.CurrentPassword), "Current password is incorrect.");
@@ -202,7 +219,17 @@ namespace DnDInventorySystem.Controllers
                 user.PasswordHash = _passwordHasher.HashPassword(user, model.NewPassword!);
             }
 
+            var trimmedDisplayName = model.DisplayName.Trim();
+            var nameExists = await _context.Users
+                .AnyAsync(u => u.Id != user.Id && u.Name == trimmedDisplayName);
+            if (nameExists)
+            {
+                ModelState.AddModelError(nameof(model.DisplayName), "Username already exists!");
+                return View(model);
+            }
+
             user.Name = model.DisplayName.Trim();
+            user.Email = model.Email.Trim();
             _context.Users.Update(user);
             await _context.SaveChangesAsync();
 

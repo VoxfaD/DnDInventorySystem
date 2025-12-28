@@ -5,7 +5,7 @@ namespace DnDInventorySystem.ViewModels
 {
     public class GameDetailsViewModel
     {
-        public Game Game { get; set; }
+        public Game Game { get; set; } = null!;
         public IReadOnlyList<Character> Characters { get; set; } = new List<Character>();
         public IReadOnlyList<Item> Items { get; set; } = new List<Item>();
         public IReadOnlyList<Category> Categories { get; set; } = new List<Category>();

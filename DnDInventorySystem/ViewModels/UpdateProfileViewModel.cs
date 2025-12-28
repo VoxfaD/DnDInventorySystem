@@ -4,12 +4,14 @@ namespace DnDInventorySystem.ViewModels
 {
     public class UpdateProfileViewModel
     {
-        [Required]
+        [Required(ErrorMessage = "Please fill in all required fields!")]
         [Display(Name = "Display name")]
-        [MaxLength(100)]
+        [StringLength(50, MinimumLength = 1, ErrorMessage = "user does not match the specified number of symbols 1-50 symbols!")]
         public string DisplayName { get; set; } = "";
 
-        [EmailAddress]
+        [Required(ErrorMessage = "Please fill in all required fields!")]
+        [EmailAddress(ErrorMessage = "Email address does not match the format!")]
+        [StringLength(100, MinimumLength = 5, ErrorMessage = "email does not match the specified number of symbols 5-100 symbols!")]
         public string Email { get; set; } = "";
 
         [DataType(DataType.Password)]
@@ -18,7 +20,6 @@ namespace DnDInventorySystem.ViewModels
 
         [DataType(DataType.Password)]
         [Display(Name = "New password")]
-        [MinLength(6)]
         public string? NewPassword { get; set; }
     }
 }

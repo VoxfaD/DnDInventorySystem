@@ -74,6 +74,22 @@
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            document.querySelectorAll(".table-row-link").forEach(function (row) {
+                row.style.cursor = "pointer";
+                row.addEventListener("click", function (e) {
+                    if (e.target.closest("a") || e.target.closest("button") || e.target.closest("form")) {
+                        return;
+                    }
+                    var href = row.getAttribute("data-href");
+                    if (href) {
+                        window.location = href;
+                    }
+                });
+            });
+        });
+    </script>
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>

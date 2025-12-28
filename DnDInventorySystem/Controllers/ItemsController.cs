@@ -181,6 +181,7 @@ namespace DnDInventorySystem.Controllers
                 item.ViewableToPlayers = true;
             }
 
+            ValidateItemFields(item);
             if (ModelState.IsValid)
             {
                 var uploadedPath = await SaveImageAsync(photoFile);
@@ -275,6 +276,7 @@ namespace DnDInventorySystem.Controllers
                 }
             }
 
+            ValidateItemFields(formItem);
             if (ModelState.IsValid)
             {
                 var actor = await GetCurrentUserNameAsync();
@@ -453,6 +455,26 @@ namespace DnDInventorySystem.Controllers
         private Task LogAsync(int gameId, string action, string details, int? characterId = null, int? itemId = null, int? categoryId = null)
         {
             return _historyLog.LogAsync(gameId, GetCurrentUserId(), action, details, characterId, itemId, categoryId);
+        }
+
+        private void ValidateItemFields(Item item)
+        {
+            if (string.IsNullOrWhiteSpace(item.Name))
+            {
+                ModelState.AddModelError(nameof(item.Name), "Please fill in the Inventory name!");
+            }
+            if (!string.IsNullOrWhiteSpace(item.Name) && (item.Name.Length < 1 || item.Name.Length > 200))
+            {
+                ModelState.AddModelError(nameof(item.Name), "Character limit exceeded for the name!");
+            }
+            if (!string.IsNullOrWhiteSpace(item.Description) && item.Description.Length > 2000)
+            {
+                ModelState.AddModelError(nameof(item.Description), "Character limit exceeded for the description!");
+            }
+            if (!string.IsNullOrWhiteSpace(item.PhotoUrl) && item.PhotoUrl.Length > 2000)
+            {
+                ModelState.AddModelError(nameof(item.PhotoUrl), "Character limit exceeded for the image!");
+            }
         }
 
         private async Task<GamePrivilege> GetUserPrivilegesAsync(int gameId, bool? isOwner = null)

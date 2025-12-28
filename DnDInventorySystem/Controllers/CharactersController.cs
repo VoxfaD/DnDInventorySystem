@@ -166,11 +166,12 @@ namespace DnDInventorySystem.Controllers
             }
 
             var validOwners = await GetGameUsersAsync(game);
-            if (!validOwners.Any(u => u.Id == character.OwnerUserId))
+            if (character.OwnerUserId.HasValue && !validOwners.Any(u => u.Id == character.OwnerUserId.Value))
             {
                 ModelState.AddModelError(nameof(character.OwnerUserId), "Select a user who is part of this game.");
             }
 
+            ValidateCharacterFields(character);
             character.GameId = game.Id;
             character.CreatedByUserId = GetCurrentUserId();
             character.PhotoUrl = string.Empty;
@@ -282,11 +283,12 @@ namespace DnDInventorySystem.Controllers
             }
 
             var validOwners = await GetGameUsersAsync(character.Game);
-            if (!validOwners.Any(u => u.Id == formCharacter.OwnerUserId))
+            if (formCharacter.OwnerUserId.HasValue && !validOwners.Any(u => u.Id == formCharacter.OwnerUserId.Value))
             {
                 ModelState.AddModelError(nameof(formCharacter.OwnerUserId), "Select a user who is part of this game.");
             }
 
+            ValidateCharacterFields(formCharacter);
             if (ModelState.IsValid)
             {
                 var actorName = await GetCurrentUserNameAsync();
@@ -469,7 +471,7 @@ namespace DnDInventorySystem.Controllers
                 entry.IsEquipped = update.IsEquipped;
                 if (entry.Item != null)
                 {
-                    await LogAsync(character.GameId, "ItemEdited", $"Character's {entry.Item.Name} edited by {actorName}", characterId: character.Id, itemId: entry.ItemId);
+                    await LogAsync(character.GameId, "ItemEdited", $"Character {character.Name}'s {entry.Item.Name} edited by {actorName}", characterId: character.Id, itemId: entry.ItemId);
                 }
             }
 
@@ -614,14 +616,12 @@ namespace DnDInventorySystem.Controllers
             if (model.Assignments == null || !model.Assignments.Any(a => a.Selected))
             {
                 ModelState.AddModelError(string.Empty, "Select at least one item to assign.");
-            }
-
-            if (!ModelState.IsValid)
-            {
                 var vm = await BuildCharacterAssignItemsViewModel(character, page, 10);
                 await SetHistorySidebarAsync(character.GameId, isOwner);
                 return View(vm);
             }
+
+            ModelState.Clear();
 
             var actorName = await GetCurrentUserNameAsync();
             var selectedIds = model.Assignments.Where(a => a.Selected).Select(a => a.ItemId).ToList();
@@ -666,7 +666,7 @@ namespace DnDInventorySystem.Controllers
                     if (previousQuantity != row.Quantity || previousEquipped != row.IsEquipped)
                     {
                         var itemName = itemNames.TryGetValue(row.ItemId, out var nm2) ? nm2 : "Item";
-                        await LogAsync(character.GameId, "ItemEdited", $"Character's {itemName} edited by {actorName}", characterId: character.Id, itemId: row.ItemId);
+                        await LogAsync(character.GameId, "ItemEdited", $"Character {character.Name}'s {itemName} edited by {actorName}", characterId: character.Id, itemId: row.ItemId);
                     }
                 }
             }
@@ -798,6 +798,26 @@ namespace DnDInventorySystem.Controllers
             var userId = GetCurrentUserId();
             return await _context.Games.AnyAsync(g => g.Id == gameId && g.CreatedByUserId == userId)
                 || await _context.UserGameRoles.AnyAsync(r => r.GameId == gameId && r.UserId == userId && r.IsOwner);
+        }
+
+        private void ValidateCharacterFields(Character character)
+        {
+            if (string.IsNullOrWhiteSpace(character.Name))
+            {
+                ModelState.AddModelError(nameof(character.Name), "Please fill in the image name!");
+            }
+            if (!string.IsNullOrWhiteSpace(character.Name) && (character.Name.Length < 1 || character.Name.Length > 100))
+            {
+                ModelState.AddModelError(nameof(character.Name), "Character limit exceeded for the name!");
+            }
+            if (!string.IsNullOrWhiteSpace(character.Description) && character.Description.Length > 2000)
+            {
+                ModelState.AddModelError(nameof(character.Description), "Character limit exceeded for the description!");
+            }
+            if (!string.IsNullOrWhiteSpace(character.PhotoUrl) && character.PhotoUrl.Length > 2000)
+            {
+                ModelState.AddModelError(nameof(character.PhotoUrl), "Character limit exceeded for the image!");
+            }
         }
 
         private async Task<string?> SaveImageAsync(IFormFile? file)

@@ -4,6 +4,7 @@
     ViewData["Title"] = "Edit item";
     var creatorName = ViewData["CreatorName"] as string ?? "Unknown";
     var gameName = ViewData["GameName"] as string ?? "Game";
+    var hasCategories = (ViewBag.CategoryId as Microsoft.AspNetCore.Mvc.Rendering.SelectList)?.Any() ?? false;
 }
 
 <div class="mb-4">
@@ -58,9 +59,15 @@
                     }
 
                     <div class="mb-4">
-                        <label asp-for="CategoryId" class="form-label"></label>
-                        <select asp-for="CategoryId" class="form-select" asp-items="ViewBag.CategoryId"></select>
+                        <label asp-for="CategoryId" class="form-label">Category</label>
+                        <select asp-for="CategoryId" class="form-select" asp-items="ViewBag.CategoryId">
+                            <option value="">Uncategorized</option>
+                        </select>
                         <span asp-validation-for="CategoryId" class="text-danger"></span>
+                        @if (!hasCategories)
+                        {
+                            <div class="form-text">No categories yet. You can create some from the game page.</div>
+                        }
                     </div>
 
                     <button type="submit" class="btn btn-primary">Save changes</button>

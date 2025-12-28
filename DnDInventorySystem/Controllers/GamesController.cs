@@ -89,16 +89,13 @@ namespace DnDInventorySystem.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create([Bind("Name,Description")] Game game)
+        public async Task<IActionResult> Create([Bind("Name")] Game game)
         {
-            // if (!ModelState.IsValid)
-            // {
-            //     return View(game);
-            // }
 
             var userId = GetCurrentUserId();
             game.CreatedByUserId = userId;
             game.CreatedAt = System.DateTime.UtcNow;
+
 
             game.UserGameRoles.Add(new UserGameRole
             {
@@ -145,7 +142,7 @@ namespace DnDInventorySystem.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int id, [Bind("Id,Name,Description")] Game updatedGame)
+        public async Task<IActionResult> Edit(int id, [Bind("Id,Name")] Game updatedGame)
         {
             if (id != updatedGame.Id)
             {
@@ -159,6 +156,13 @@ namespace DnDInventorySystem.Controllers
                 return NotFound();
             }
 
+            if (!ModelState.IsValid)
+            {
+                await SetHistorySidebarAsync(updatedGame.Id, true);
+                return View(updatedGame);
+            }
+
+            ValidateGameFields(updatedGame);
             if (!ModelState.IsValid)
             {
                 await SetHistorySidebarAsync(updatedGame.Id, true);
@@ -276,6 +280,18 @@ namespace DnDInventorySystem.Controllers
 
             if (rolePerson != null)
             {
+                var gameOwnerId = game.CreatedByUserId;
+                var ownedCharacters = await _context.Characters
+                    .Where(c => c.GameId == game.Id && c.OwnerUserId == userId)
+                    .ToListAsync();
+                if (ownedCharacters.Any())
+                {
+                    foreach (var ch in ownedCharacters)
+                    {
+                        ch.OwnerUserId = gameOwnerId;
+                    }
+                }
+
                 _context.UserGameRoles.Remove(rolePerson);
                 await _context.SaveChangesAsync();
                 var actor = await GetCurrentUserNameAsync();
@@ -454,7 +470,7 @@ namespace DnDInventorySystem.Controllers
 
             if (game == null || string.IsNullOrWhiteSpace(game.JoinCode) || !game.JoinCodeActive)
             {
-                ModelState.AddModelError(nameof(model.JoinCode), "Join code is invalid or deactivated.");
+                ModelState.AddModelError(nameof(model.JoinCode), "Invitation code not found or not active!");
                 return View(model);
             }
 
@@ -463,7 +479,7 @@ namespace DnDInventorySystem.Controllers
                                 game.UserGameRoles.Any(rp => rp.UserId == userId);
             if (alreadyMember)
             {
-                ModelState.AddModelError(nameof(model.JoinCode), "You are already part of this game.");
+                ModelState.AddModelError(nameof(model.JoinCode), "You have already joined this game!");
                 return View(model);
             }
 
@@ -583,6 +599,25 @@ namespace DnDInventorySystem.Controllers
             while (await _context.Games.AnyAsync(g => g.JoinCode == code));
 
             return code;
+        }
+
+        private void ValidateGameFields(Game game)
+        {
+            game.Name = game.Name?.Trim() ?? string.Empty;
+            game.Description = game.Description?.Trim() ?? string.Empty;
+
+            if (string.IsNullOrWhiteSpace(game.Name))
+            {
+                ModelState.AddModelError(nameof(game.Name), "Please fill in the game name!");
+            }
+            if (!string.IsNullOrWhiteSpace(game.Name) && (game.Name.Length < 1 || game.Name.Length > 100))
+            {
+                ModelState.AddModelError(nameof(game.Name), "Character limit exceeded for the name!");
+            }
+            if (!string.IsNullOrWhiteSpace(game.Description) && game.Description.Length > 2000)
+            {
+                ModelState.AddModelError(nameof(game.Description), "Character limit exceeded for the description!");
+            }
         }
     }
 }

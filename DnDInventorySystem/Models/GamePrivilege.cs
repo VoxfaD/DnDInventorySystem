@@ -26,6 +26,26 @@ namespace DnDInventorySystem.Models
         EditCharacterInventory = 1 << 17,
         ViewHistoryLogs = 1 << 18,
         RemovePlayers = 1 << 19,
-        All = ~0
+        All =
+            EditGame |
+            CreateJoinCode |
+            ActivateJoinCode |
+            CreateCharacters |
+            EditCharacters |
+            DeleteCharacters |
+            CreateItems |
+            EditItems |
+            DeleteItems |
+            CreateCategories |
+            EditCategories |
+            DeleteCategories |
+            ViewCharacters |
+            ViewItems |
+            ViewCategories |
+            AddItemsToCharacters |
+            RemoveItemsFromCharacters |
+            EditCharacterInventory |
+            ViewHistoryLogs |
+            RemovePlayers
     }
 }

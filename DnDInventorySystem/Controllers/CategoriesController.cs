@@ -159,6 +159,7 @@ namespace DnDInventorySystem.Controllers
                 return Forbid();
             }
 
+            ValidateCategoryFields(category);
             category.GameId = game.Id;
             category.CreatedByUserId = GetCurrentUserId();
 
@@ -229,6 +230,7 @@ namespace DnDInventorySystem.Controllers
                 return Forbid();
             }
 
+            ValidateCategoryFields(formCategory);
             if (ModelState.IsValid)
             {
                 try
@@ -307,6 +309,13 @@ namespace DnDInventorySystem.Controllers
                 if (!isOwner && !privileges.HasFlag(GamePrivilege.DeleteCategories))
                 {
                     return Forbid();
+                }
+
+                var linkedToItems = await _context.Items.AnyAsync(i => i.CategoryId == category.Id);
+                if (linkedToItems)
+                {
+                    TempData["CategoryMessage"] = "The category is already linked to an inventory, first remove the link from the inventory!";
+                    return RedirectToAction(nameof(Index), new { gameId = category.GameId });
                 }
 
                 var actor = await GetCurrentUserNameAsync();
@@ -394,6 +403,18 @@ namespace DnDInventorySystem.Controllers
             var userId = GetCurrentUserId();
             return await _context.Games.AnyAsync(g => g.Id == gameId && g.CreatedByUserId == userId)
                 || await _context.UserGameRoles.AnyAsync(r => r.GameId == gameId && r.UserId == userId && r.IsOwner);
+        }
+
+        private void ValidateCategoryFields(Category category)
+        {
+            if (string.IsNullOrWhiteSpace(category.Name))
+            {
+                ModelState.AddModelError(nameof(category.Name), "Please fill in the category name!");
+            }
+            if (!string.IsNullOrWhiteSpace(category.Name) && (category.Name.Length < 1 || category.Name.Length > 200))
+            {
+                ModelState.AddModelError(nameof(category.Name), "Character limit exceeded for the name!");
+            }
         }
     }
 }

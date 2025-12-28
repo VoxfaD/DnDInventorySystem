@@ -39,10 +39,8 @@
                 <h5 class="card-title">Details</h5>
                 <p class="mb-3 text-muted">@(string.IsNullOrWhiteSpace(Model.Description) ? "No description" : Model.Description)</p>
                 <dl class="row mb-0">
-                    <dt class="col-sm-4">Game</dt>
-                    <dd class="col-sm-8">@Model.Game?.Name</dd>
                     <dt class="col-sm-4">Category</dt>
-                    <dd class="col-sm-8">@Model.Category?.Name ?? "Uncategorized"</dd>
+                    <dd class="col-sm-8">@(Model.Category?.Name ?? "Uncategorized")</dd>
                     <dt class="col-sm-4">Created by</dt>
                     <dd class="col-sm-8">@Model.CreatedByUser?.Name</dd>
                 </dl>
