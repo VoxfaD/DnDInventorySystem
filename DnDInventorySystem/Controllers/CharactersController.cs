@@ -197,7 +197,7 @@ namespace DnDInventorySystem.Controllers
                     var ownerName = validOwners.FirstOrDefault(o => o.Id == character.OwnerUserId)?.Name ?? "User";
                     await LogAsync(game.Id, "CharacterAssignedOwner", $"Character {character.Name} assigned to {ownerName} by {actorName}", characterId: character.Id);
                 }
-                return RedirectToAction("Details", "Games", new { id = game.Id });
+                return RedirectToAction(nameof(Index), new { gameId = game.Id });
             }
 
             await PopulateCharacterCreateViewAsync(game, character.OwnerUserId, validOwners);

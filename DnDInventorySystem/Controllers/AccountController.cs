@@ -41,7 +41,6 @@ namespace DnDInventorySystem.Controllers
         {
             if (!ModelState.IsValid)
             {
-                ModelState.AddModelError(string.Empty, "Please fill in all required fields!");
                 return View(model);
             }
 
@@ -106,9 +105,32 @@ namespace DnDInventorySystem.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Register(RegisterViewModel model)
         {
+            if (string.IsNullOrWhiteSpace(model.Name))
+            {
+                ModelState[nameof(model.Name)]?.Errors.Clear();
+                ModelState.AddModelError(nameof(model.Name), "Username is required!");
+            }
+
+            if (string.IsNullOrWhiteSpace(model.Email))
+            {
+                ModelState[nameof(model.Email)]?.Errors.Clear();
+                ModelState.AddModelError(nameof(model.Email), "E-mail is required!");
+            }
+
+            if (string.IsNullOrWhiteSpace(model.Password))
+            {
+                ModelState[nameof(model.Password)]?.Errors.Clear();
+                ModelState.AddModelError(nameof(model.Password), "Password is required!");
+            }
+
+            if (string.IsNullOrWhiteSpace(model.ConfirmPassword))
+            {
+                ModelState[nameof(model.ConfirmPassword)]?.Errors.Clear();
+                ModelState.AddModelError(nameof(model.ConfirmPassword), "Password confirmation is required!");
+            }
+
             if (!ModelState.IsValid)
             {
-                ModelState.AddModelError(string.Empty, "Please fill in all required fields!");
                 return View(model);
             }
 
@@ -190,7 +212,6 @@ namespace DnDInventorySystem.Controllers
 
             if (!ModelState.IsValid)
             {
-                ModelState.AddModelError(string.Empty, "Please fill in all required fields!");
                 return View(model);
             }
 

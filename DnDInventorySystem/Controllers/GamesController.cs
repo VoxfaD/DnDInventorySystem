@@ -89,13 +89,20 @@ namespace DnDInventorySystem.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create([Bind("Name")] Game game)
+        public async Task<IActionResult> Create([Bind("Name,Description")] Game game)
         {
-
             var userId = GetCurrentUserId();
             game.CreatedByUserId = userId;
+            game.CreatedByUser = await _context.Users.FindAsync(userId);
             game.CreatedAt = System.DateTime.UtcNow;
+            ModelState.Remove(nameof(game.CreatedByUser));
+            ModelState.Remove(nameof(game.CreatedByUserId));
 
+            ValidateGameFields(game);
+            if (!ModelState.IsValid)
+            {
+                return View(game);
+            }
 
             game.UserGameRoles.Add(new UserGameRole
             {
@@ -143,7 +150,7 @@ namespace DnDInventorySystem.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int id, [Bind("Id,Name")] Game updatedGame)
+        public async Task<IActionResult> Edit(int id, [Bind("Id,Name,Description")] Game updatedGame)
         {
             if (id != updatedGame.Id)
             {
@@ -156,6 +163,9 @@ namespace DnDInventorySystem.Controllers
             {
                 return NotFound();
             }
+
+            ModelState.Remove(nameof(updatedGame.CreatedByUser));
+            ModelState.Remove(nameof(updatedGame.CreatedByUserId));
 
             if (!ModelState.IsValid)
             {

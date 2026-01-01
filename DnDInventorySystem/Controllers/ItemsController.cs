@@ -199,7 +199,7 @@ namespace DnDInventorySystem.Controllers
                     return RedirectToAction("AssignItems", "Characters", new { id = returnCharacterId.Value });
                 }
 
-                return RedirectToAction("Details", "Games", new { id = game.Id });
+                return RedirectToAction(nameof(Index), new { gameId = game.Id });
             }
             await PopulateItemCreateViewAsync(game, returnCharacterId);
             ViewBag.IsOwner = isOwner;
