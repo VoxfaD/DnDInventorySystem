@@ -2,6 +2,7 @@ For visual studio code you will need c#, c# dev kit and .NET install tool instal
 all of the file and in visual studio code terminal go to where this: ../DnDInventorySystem/DnDInventorySystem is located then run in order these commands:
 
 (make sure you have created a migrations folder here ../DnDInventorySystem/DnDInventorySystem/Migrations)
+
 dotnet ef migrations add InitialCreate
 dotnet ef database update 
 
