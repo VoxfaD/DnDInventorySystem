@@ -1,4 +1,8 @@
-For visual studio code you will need c#, c# dev kit and .NET install tool installed on, for visual studio code you will have to open up the
+For visual studio code you will need:
+- C#
+- C# Dev Kit
+- .NET Install Tool
+for visual studio code you will have to open up the
 all of the file and in visual studio code terminal go to where this: ../DnDInventorySystem/DnDInventorySystem is located then run in order these commands:
 
 (make sure you have created a migrations folder here ../DnDInventorySystem/DnDInventorySystem/Migrations)
