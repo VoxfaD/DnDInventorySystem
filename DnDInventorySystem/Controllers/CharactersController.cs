@@ -36,6 +36,11 @@ namespace DnDInventorySystem.Controllers
         {
             const int PageSize = 10;
             if (page < 1) page = 1;
+            if (!gameId.HasValue)
+            {
+                TempData["GameMessage"] = "Choose a game to view its characters.";
+                return RedirectToAction("Index", "Games");
+            }
             var charactersQuery = _context.Characters
                 .Include(c => c.CreatedByUser)
                 .Include(c => c.Game)
@@ -43,37 +48,30 @@ namespace DnDInventorySystem.Controllers
                 .AsQueryable();
             bool isOwner = false;
 
-            if (gameId.HasValue)
+            var privileges = await GetUserPrivilegesAsync(gameId.Value);
+            if (!privileges.HasFlag(GamePrivilege.ViewCharacters))
             {
-                var privileges = await GetUserPrivilegesAsync(gameId.Value);
-                if (!privileges.HasFlag(GamePrivilege.ViewCharacters))
-                {
-                    return NotFound();
-                }
-                charactersQuery = charactersQuery.Where(c => c.GameId == gameId.Value);
-                isOwner = await IsOwnerAsync(gameId.Value);
-                var userId = GetCurrentUserId();
-                if (!isOwner)
-                {
-                    charactersQuery = charactersQuery.Where(c =>
-                        c.ViewableToPlayers ||
-                        c.OwnerUserId == userId ||
-                        c.CreatedByUserId == userId);
-                }
-                ViewData["CurrentGameId"] = gameId.Value;
-                ViewData["CurrentGameName"] = await _context.Games
-                    .Where(g => g.Id == gameId.Value)
-                    .Select(g => g.Name)
-                    .FirstOrDefaultAsync();
-                ViewBag.IsOwner = isOwner;
-                ViewBag.CurrentUserId = userId;
-                ViewBag.Privileges = privileges;
+                return NotFound();
             }
+            charactersQuery = charactersQuery.Where(c => c.GameId == gameId.Value);
+            isOwner = await IsOwnerAsync(gameId.Value);
+            var userId = GetCurrentUserId();
+            if (!isOwner)
+            {
+                charactersQuery = charactersQuery.Where(c =>
+                    c.ViewableToPlayers ||
+                    c.OwnerUserId == userId ||
+                    c.CreatedByUserId == userId);
+            }
+            ViewData["CurrentGameId"] = gameId.Value;
+            ViewData["CurrentGameName"] = await _context.Games
+                .Where(g => g.Id == gameId.Value)
+                .Select(g => g.Name)
+                .FirstOrDefaultAsync();
+            ViewBag.IsOwner = isOwner;
+            ViewBag.CurrentUserId = userId;
+            ViewBag.Privileges = privileges;
 
-            if (ViewBag.CurrentUserId == null)
-            {
-                ViewBag.CurrentUserId = GetCurrentUserId();
-            }
             var totalCount = await charactersQuery.CountAsync();
             var characters = await charactersQuery
                 .Skip((page - 1) * PageSize)
@@ -81,10 +79,7 @@ namespace DnDInventorySystem.Controllers
                 .ToListAsync();
             ViewBag.Page = page;
             ViewBag.TotalPages = (int)Math.Ceiling(totalCount / (double)PageSize);
-            if (gameId.HasValue)
-            {
-                await SetHistorySidebarAsync(gameId.Value, isOwner);
-            }
+            await SetHistorySidebarAsync(gameId.Value, isOwner);
             return View(characters);
         }
         //Show a specific character's information

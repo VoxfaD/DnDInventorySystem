@@ -32,7 +32,8 @@ namespace DnDInventorySystem.Controllers
             if (page < 1) page = 1;
             if (!gameId.HasValue)
             {
-                return NotFound();
+                TempData["GameMessage"] = "Choose a game to view its categories.";
+                return RedirectToAction("Index", "Games");
             }
 
             var game = await GetAuthorizedGameAsync(gameId.Value);

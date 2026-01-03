@@ -35,6 +35,11 @@ namespace DnDInventorySystem.Controllers
         {
             const int PageSize = 10;
             if (page < 1) page = 1;
+            if (!gameId.HasValue)
+            {
+                TempData["GameMessage"] = "Choose a game to view its items.";
+                return RedirectToAction("Index", "Games");
+            }
             var userId = GetCurrentUserId();
             var itemsQuery = _context.Items
                 .Include(i => i.Category)
@@ -42,29 +47,26 @@ namespace DnDInventorySystem.Controllers
                 .Include(i => i.Game)
                 .AsQueryable();
 
-            if (gameId.HasValue)
+            var privileges = await GetUserPrivilegesAsync(gameId.Value);
+            if (!privileges.HasFlag(GamePrivilege.ViewItems))
             {
-                var privileges = await GetUserPrivilegesAsync(gameId.Value);
-                if (!privileges.HasFlag(GamePrivilege.ViewItems))
-                {
-                    return NotFound();
-                }
-                itemsQuery = itemsQuery.Where(i => i.GameId == gameId.Value);
-                var isOwner = await IsOwnerAsync(gameId.Value);
-                if (!isOwner)
-                {
-                    itemsQuery = itemsQuery.Where(i =>
-                        i.ViewableToPlayers || i.CreatedByUserId == userId);
-                }
-                ViewData["CurrentGameId"] = gameId.Value;
-                ViewData["CurrentGameName"] = await _context.Games
-                    .Where(g => g.Id == gameId.Value)
-                    .Select(g => g.Name)
-                    .FirstOrDefaultAsync();
-                await SetHistorySidebarAsync(gameId.Value, isOwner);
-                ViewBag.IsOwner = isOwner;
-                ViewBag.Privileges = privileges;
+                return NotFound();
             }
+            itemsQuery = itemsQuery.Where(i => i.GameId == gameId.Value);
+            var isOwner = await IsOwnerAsync(gameId.Value);
+            if (!isOwner)
+            {
+                itemsQuery = itemsQuery.Where(i =>
+                    i.ViewableToPlayers || i.CreatedByUserId == userId);
+            }
+            ViewData["CurrentGameId"] = gameId.Value;
+            ViewData["CurrentGameName"] = await _context.Games
+                .Where(g => g.Id == gameId.Value)
+                .Select(g => g.Name)
+                .FirstOrDefaultAsync();
+            await SetHistorySidebarAsync(gameId.Value, isOwner);
+            ViewBag.IsOwner = isOwner;
+            ViewBag.Privileges = privileges;
             ViewBag.CurrentUserId = userId;
 
             var totalCount = await itemsQuery.CountAsync();
