@@ -1,6 +1,5 @@
 using System.Collections.Generic;
 using DnDInventorySystem.Models;
-using Microsoft.AspNetCore.Mvc.ModelBinding.Validation;
 
 namespace DnDInventorySystem.ViewModels
 {
@@ -8,7 +7,6 @@ namespace DnDInventorySystem.ViewModels
     {
         public int CharacterId { get; set; }
 
-        [ValidateNever]
         public Character Character { get; set; }
         public List<AssignItemRow> Assignments { get; set; } = new();
         public int Page { get; set; }

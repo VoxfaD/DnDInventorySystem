@@ -61,33 +61,34 @@
         <div class="col-12">
             <div class="card shadow-sm inventory-card">
                 <div class="card-body">
+                    @{
+                        var canEditInventory = isOwner || Can(DnDInventorySystem.Models.GamePrivilege.EditCharacterInventory);
+                    }
                     <div class="d-flex justify-content-between align-items-center mb-3">
                         <h5 class="card-title mb-0">Inventory</h5>
-                        <span class="text-muted small">@Model.Inventory.Count item entries</span>
                     </div>
-
-                    @if (!Model.Inventory.Any())
-                    {
-                        <p class="text-muted mb-0">No items assigned yet.</p>
-                    }
-                    else
-                    {
-                        var canEditInventory = isOwner || Can(DnDInventorySystem.Models.GamePrivilege.EditCharacterInventory);
-                        <form asp-action="UpdateInventoryBulk" method="post">
-                            <input type="hidden" name="characterId" value="@character.Id" />
-                            <div class="d-flex justify-content-between align-items-center mb-2">
-                                <div class="text-muted small">@Model.Inventory.Count item entries</div>
-                                <div class="d-flex align-items-center gap-2">
-                                    @if ((ViewBag.CanAssignItems as bool?) == true)
-                                    {
-                                        <a class="btn btn-sm btn-primary" asp-action="AssignItems" asp-route-id="@character.Id">Give / assign items</a>
-                                    }
-                                    @if (canEditInventory)
-                                    {
-                                        <button type="submit" class="btn btn-sm btn-outline-primary">Save changes</button>
-                                    }
-                                </div>
+                    <form asp-action="UpdateInventoryBulk" method="post">
+                        <input type="hidden" name="characterId" value="@character.Id" />
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <div class="text-muted small">@Model.Inventory.Count item entries</div>
+                            <div class="d-flex align-items-center gap-2">
+                                @if ((ViewBag.CanAssignItems as bool?) == true)
+                                {
+                                    <a class="btn btn-sm btn-primary" asp-action="AssignItems" asp-route-id="@character.Id">Give / assign items</a>
+                                }
+                                @if (canEditInventory && Model.Inventory.Any())
+                                {
+                                    <button type="submit" class="btn btn-sm btn-outline-primary">Save changes</button>
+                                }
                             </div>
+                        </div>
+
+                        @if (!Model.Inventory.Any())
+                        {
+                            <p class="text-muted mb-0">No items assigned yet.</p>
+                        }
+                        else
+                        {
                             <div class="table-responsive">
                                 <table class="table table-striped align-middle">
                                     <thead>
@@ -95,7 +96,7 @@
                                             <th style="width: 90px;">Picture</th>
                                             <th>Name</th>
                                             <th style="width: 260px;">Inventory</th>
-                                            <th></th>
+                                            <th class="text-end" style="width: 140px;">Action</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -156,8 +157,8 @@
                                     </tbody>
                                 </table>
                             </div>
-                        </form>
-                    }
+                        }
+                    </form>
                 </div>
             </div>
         </div>

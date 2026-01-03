@@ -5,18 +5,22 @@
     ViewData["Title"] = $"Assign items · {character.Name}";
 }
 
+@{
+    var inventoryCount = ViewBag.InventoryCount as int? ?? 0;
+}
+
 <div class="box game-box">
+    <div id="assign-meta" data-inventory-count="@inventoryCount"></div>
     <div class="mb-4 d-flex justify-content-between align-items-center">
         <div>
             <h1 class="mb-1">Assign items</h1>
-            <p class="text-muted mb-0">Give items from <strong>@character.Game?.Name</strong> to <strong>@character.Name</strong>.</p>
         </div>
         <div class="d-flex gap-2">
             <a class="btn btn-outline-secondary" asp-action="Details" asp-route-id="@character.Id">Back to character</a>
         </div>
     </div>
 
-    <form asp-action="AssignItems" method="post">
+    <form asp-action="AssignItems" method="post" id="assign-form">
         <div class="d-flex justify-content-between align-items-center mb-3">
             <h5 class="card-title mb-0">Select items</h5>
             <div class="d-flex gap-2">
@@ -88,6 +92,7 @@
     <script>
         (() => {
             const storageKey = `assignSelections-@character.Id`;
+            const inventoryCount = parseInt(document.getElementById("assign-meta")?.dataset.inventoryCount || "0", 10);
 
             const loadSelections = () => {
                 try {
@@ -108,13 +113,15 @@
                     const itemIdInput = row.querySelector('input[name="Assignments[' + idx + '].ItemId"]');
                     if (!itemIdInput) return;
                     const itemId = itemIdInput.value;
-                    const selected = map[itemId];
                     const hidden = row.querySelector('.assignment-selected');
-                    if (selected === true || selected === false) {
-                        row.classList.toggle("selected", selected);
-                        if (hidden) hidden.value = selected ? "true" : "false";
-                    }
+                    const serverSelected = hidden?.value === "true";
+                    const persisted = map[itemId];
+                    const effective = serverSelected ? true : persisted === true ? true : false;
+                    map[itemId] = effective;
+                    row.classList.toggle("selected", effective);
+                    if (hidden) hidden.value = effective ? "true" : "false";
                 });
+                saveSelections(map);
             };
 
             const persistCurrentSelections = () => {
@@ -139,7 +146,31 @@
                 });
             });
 
+            // If character has no inventory and server shows nothing selected, clear stale stored selections
+            const serverSelected = Array.from(document.querySelectorAll(".assignment-selected")).some(h => h.value === "true");
+            if (inventoryCount === 0 && !serverSelected) {
+                localStorage.removeItem(storageKey);
+            }
+
             applySelections();
+
+            const form = document.getElementById("assign-form");
+            form?.addEventListener("submit", () => {
+                persistCurrentSelections();
+                const map = loadSelections();
+                // remove previously added hidden persisted inputs
+                form.querySelectorAll(".persisted-selected").forEach((n) => n.remove());
+                Object.entries(map).forEach(([itemId, selected]) => {
+                    if (selected === true) {
+                        const input = document.createElement("input");
+                        input.type = "hidden";
+                        input.name = "persistedSelectedIds";
+                        input.value = itemId;
+                        input.classList.add("persisted-selected");
+                        form.appendChild(input);
+                    }
+                });
+            });
         })();
     </script>
 }

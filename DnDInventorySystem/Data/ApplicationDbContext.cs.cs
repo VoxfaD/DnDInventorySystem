@@ -24,8 +24,6 @@ namespace DnDInventorySystem.Data
                             //database example data for testing purposes
             var user1 = new User { Id = 1, Name = "Alice", Email = "alice@example.com", PasswordHash = "Password123!" };
             var user2 = new User { Id = 2, Name = "Bob",   Email = "bob@example.com",   PasswordHash = "Swordfish1!" };
-            var user3 = new User { Id = 3, Name = "Charlie", Email = "charlie@example.com", PasswordHash = "Swordfish1!" };
-            var user4 = new User { Id = 4, Name = "Dana", Email = "dana@example.com", PasswordHash = "Swordfish1!" };
 
             var game1 = new Game { Id = 1, Name = "Stormreach", Description = "Alice's campaign", CreatedByUserId = 1, CreatedAt = new DateTime(2024, 1, 1, 0, 0, 0, DateTimeKind.Utc), JoinCodeActive = false };
             var game2 = new Game { Id = 2, Name = "Duskhaven",  Description = "Bob's campaign",   CreatedByUserId = 2, CreatedAt = new DateTime(2024, 1, 2, 0, 0, 0, DateTimeKind.Utc), JoinCodeActive = false };
@@ -74,18 +72,16 @@ namespace DnDInventorySystem.Data
             {
                 new Character { Id = 1, Name = "Aria", Description = "Ranger", GameId = 1, CreatedByUserId = 1, OwnerUserId = 1, ViewableToPlayers = true },
                 new Character { Id = 2, Name = "Bram", Description = "Cleric", GameId = 1, CreatedByUserId = 1, OwnerUserId = 1, ViewableToPlayers = true },
-                new Character { Id = 3, Name = "Celeste", Description = "Wizard", GameId = 1, CreatedByUserId = 1, OwnerUserId = 1, ViewableToPlayers = true },
-                new Character { Id = 4, Name = "Nico", Description = "Bard", GameId = 1, CreatedByUserId = 3, OwnerUserId = 3, ViewableToPlayers = true }
+                new Character { Id = 3, Name = "Celeste", Description = "Wizard", GameId = 1, CreatedByUserId = 1, OwnerUserId = 1, ViewableToPlayers = true }
             };
             var chars2 = new[]
             {
                 new Character { Id = 101, Name = "Dante", Description = "Fighter", GameId = 2, CreatedByUserId = 2, OwnerUserId = 2, ViewableToPlayers = true },
                 new Character { Id = 102, Name = "Elara", Description = "Druid",  GameId = 2, CreatedByUserId = 2, OwnerUserId = 2, ViewableToPlayers = true },
-                new Character { Id = 103, Name = "Felix", Description = "Rogue",  GameId = 2, CreatedByUserId = 2, OwnerUserId = 2, ViewableToPlayers = true },
-                new Character { Id = 104, Name = "Lyra", Description = "Sorcerer",  GameId = 2, CreatedByUserId = 4, OwnerUserId = 4, ViewableToPlayers = true }
+                new Character { Id = 103, Name = "Felix", Description = "Rogue",  GameId = 2, CreatedByUserId = 2, OwnerUserId = 2, ViewableToPlayers = true }
             };
 
-            modelBuilder.Entity<User>().HasData(user1, user2, user3, user4);
+            modelBuilder.Entity<User>().HasData(user1, user2);
             modelBuilder.Entity<Game>().HasData(game1, game2);
             modelBuilder.Entity<Category>().HasData(categories);
             modelBuilder.Entity<Item>().HasData(items1.Concat(items2).ToArray());
@@ -93,9 +89,7 @@ namespace DnDInventorySystem.Data
             modelBuilder.Entity<UserGameRole>().HasData(new[]
             {
                 new UserGameRole { Id = 1, GameId = 1, UserId = 1, IsOwner = true, Privileges = GamePrivilege.All, PrivilegesNames = PrivilegeSets.ToNames(GamePrivilege.All) },
-                new UserGameRole { Id = 2, GameId = 2, UserId = 2, IsOwner = true, Privileges = GamePrivilege.All, PrivilegesNames = PrivilegeSets.ToNames(GamePrivilege.All) },
-                new UserGameRole { Id = 3, GameId = 1, UserId = 3, IsOwner = false, Privileges = GamePrivilege.CreateCharacters | GamePrivilege.ViewCharacters | GamePrivilege.ViewItems | GamePrivilege.ViewCategories, PrivilegesNames = PrivilegeSets.ToNames(GamePrivilege.CreateCharacters | GamePrivilege.ViewCharacters | GamePrivilege.ViewItems | GamePrivilege.ViewCategories) },
-                new UserGameRole { Id = 4, GameId = 2, UserId = 4, IsOwner = false, Privileges = GamePrivilege.CreateCharacters | GamePrivilege.ViewCharacters | GamePrivilege.ViewItems | GamePrivilege.ViewCategories, PrivilegesNames = PrivilegeSets.ToNames(GamePrivilege.CreateCharacters | GamePrivilege.ViewCharacters | GamePrivilege.ViewItems | GamePrivilege.ViewCategories) }
+                new UserGameRole { Id = 2, GameId = 2, UserId = 2, IsOwner = true, Privileges = GamePrivilege.All, PrivilegesNames = PrivilegeSets.ToNames(GamePrivilege.All) }
             });
             // Unique email
             modelBuilder.Entity<User>()

@@ -472,9 +472,14 @@ namespace DnDInventorySystem.Controllers
                     continue;
                 }
 
-                entry.Quantity = update.Quantity < 1 ? 1 : update.Quantity;
-                entry.IsEquipped = update.IsEquipped;
-                if (entry.Item != null)
+                var newQty = update.Quantity < 1 ? 1 : update.Quantity;
+                var newEquipped = update.IsEquipped;
+                var changed = entry.Quantity != newQty || entry.IsEquipped != newEquipped;
+
+                entry.Quantity = newQty;
+                entry.IsEquipped = newEquipped;
+
+                if (changed && entry.Item != null)
                 {
                     await LogAsync(character.GameId, "ItemEdited", $"Character {character.Name}'s {entry.Item.Name} edited by {actorName}", characterId: character.Id, itemId: entry.ItemId);
                 }
@@ -495,6 +500,7 @@ namespace DnDInventorySystem.Controllers
             }
 
             var entry = await _context.ItemCharacters
+                .Include(ic => ic.Item)
                 .FirstOrDefaultAsync(ic => ic.Id == entryId && ic.CharacterId == character.Id);
             if (entry != null)
             {
@@ -506,8 +512,14 @@ namespace DnDInventorySystem.Controllers
                     return Forbid();
                 }
 
+                var actorName = await GetCurrentUserNameAsync();
+                var itemName = entry.Item?.Name ?? "Item";
                 _context.ItemCharacters.Remove(entry);
                 await _context.SaveChangesAsync();
+                if (entry.ItemId != 0)
+                {
+                    await LogAsync(character.GameId, "ItemRemoved", $"{actorName} removed {itemName} from {character.Name}", characterId: character.Id, itemId: entry.ItemId);
+                }
             }
 
             return RedirectToAction(nameof(Details), new { id = character.Id });
@@ -590,6 +602,7 @@ namespace DnDInventorySystem.Controllers
             }
 
             var viewModel = await BuildCharacterAssignItemsViewModel(character, page, PageSize);
+            ViewBag.InventoryCount = await _context.ItemCharacters.CountAsync(ic => ic.CharacterId == character.Id);
             await SetHistorySidebarAsync(character.GameId, isOwner);
             return View(viewModel);
         }
@@ -597,7 +610,7 @@ namespace DnDInventorySystem.Controllers
         // POST: Characters/AssignItems
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> AssignItems(CharacterAssignItemsViewModel model, int page = 1)
+        public async Task<IActionResult> AssignItems(CharacterAssignItemsViewModel model, int page = 1, List<int>? persistedSelectedIds = null)
         {
             if (model.CharacterId == 0)
             {
@@ -622,6 +635,7 @@ namespace DnDInventorySystem.Controllers
             {
                 ModelState.AddModelError(string.Empty, "Select at least one item to assign.");
                 var vm = await BuildCharacterAssignItemsViewModel(character, page, 10);
+                ViewBag.InventoryCount = await _context.ItemCharacters.CountAsync(ic => ic.CharacterId == character.Id);
                 await SetHistorySidebarAsync(character.GameId, isOwner);
                 return View(vm);
             }
@@ -629,12 +643,23 @@ namespace DnDInventorySystem.Controllers
             ModelState.Clear();
 
             var actorName = await GetCurrentUserNameAsync();
-            var selectedIds = model.Assignments.Where(a => a.Selected).Select(a => a.ItemId).ToList();
+            var selectedIds = new HashSet<int>(model.Assignments.Where(a => a.Selected).Select(a => a.ItemId));
+            if (persistedSelectedIds != null)
+            {
+                foreach (var id in persistedSelectedIds)
+                {
+                    selectedIds.Add(id);
+                }
+            }
             var itemNames = await _context.Items
-                .Where(i => selectedIds.Contains(i.Id))
+                .Where(i => selectedIds.Contains(i.Id) || _context.ItemCharacters.Any(ic => ic.CharacterId == character.Id && ic.ItemId == i.Id))
                 .ToDictionaryAsync(i => i.Id, i => i.Name);
 
-            foreach (var row in model.Assignments.Where(a => a.Selected))
+            var existingEntries = await _context.ItemCharacters
+                .Where(ic => ic.CharacterId == character.Id)
+                .ToListAsync();
+
+            foreach (var row in model.Assignments.Where(a => a.Selected || (persistedSelectedIds != null && persistedSelectedIds.Contains(a.ItemId))))
             {
                 if (row.Quantity < 1)
                 {
@@ -660,7 +685,7 @@ namespace DnDInventorySystem.Controllers
                         IsEquipped = row.IsEquipped
                     });
                     var itemName = itemNames.TryGetValue(row.ItemId, out var nm1) ? nm1 : "Item";
-                    await LogAsync(character.GameId, "ItemAssigned", $"Character {character.Name} assigned {itemName} by {actorName}", characterId: character.Id, itemId: row.ItemId);
+                    await LogAsync(character.GameId, "ItemAssigned", $"{actorName} assigned {itemName} to {character.Name}", characterId: character.Id, itemId: row.ItemId);
                 }
                 else
                 {
@@ -671,8 +696,25 @@ namespace DnDInventorySystem.Controllers
                     if (previousQuantity != row.Quantity || previousEquipped != row.IsEquipped)
                     {
                         var itemName = itemNames.TryGetValue(row.ItemId, out var nm2) ? nm2 : "Item";
-                        await LogAsync(character.GameId, "ItemEdited", $"Character {character.Name}'s {itemName} edited by {actorName}", characterId: character.Id, itemId: row.ItemId);
+                        await LogAsync(character.GameId, "ItemEdited", $"{actorName} edited {character.Name}'s {itemName}", characterId: character.Id, itemId: row.ItemId);
                     }
+                }
+            }
+
+            // Remove items that were previously assigned but now unchecked
+            var deselectedIds = existingEntries
+                .Where(e => !selectedIds.Contains(e.ItemId))
+                .Select(e => e.ItemId)
+                .ToList();
+
+            if (deselectedIds.Any())
+            {
+                var toRemove = existingEntries.Where(e => deselectedIds.Contains(e.ItemId)).ToList();
+                _context.ItemCharacters.RemoveRange(toRemove);
+                foreach (var removed in toRemove)
+                {
+                    var itemName = itemNames.TryGetValue(removed.ItemId, out var nm3) ? nm3 : "Item";
+                    await LogAsync(character.GameId, "ItemRemoved", $"{actorName} removed {itemName} from {character.Name}", characterId: character.Id, itemId: removed.ItemId);
                 }
             }
 
