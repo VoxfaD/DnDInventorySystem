@@ -30,7 +30,7 @@ namespace DnDInventorySystem.Controllers
             _historyLog = historyLog;
             _environment = environment;
         }
-
+        // Return every character
         // GET: Characters
         public async Task<IActionResult> Index(int? gameId, int page = 1)
         {
@@ -87,8 +87,8 @@ namespace DnDInventorySystem.Controllers
             }
             return View(characters);
         }
-
-        // GET: Characters/Details/5
+        //Show a specific character's information
+        // GET: Characters/Details/id
         public async Task<IActionResult> Details(int? id)
         {
             if (id == null)
@@ -124,7 +124,7 @@ namespace DnDInventorySystem.Controllers
             await SetHistorySidebarAsync(character.GameId, isOwner);
             return View(viewModel);
         }
-
+        //Character creation
         // GET: Characters/Create
         public async Task<IActionResult> Create(int? gameId)
         {
@@ -211,8 +211,8 @@ namespace DnDInventorySystem.Controllers
             await SetHistorySidebarAsync(game.Id, isOwner);
             return View(character);
         }
-
-        // GET: Characters/Edit/5
+        //Editing a character
+        // GET: Characters/Edit/id
         public async Task<IActionResult> Edit(int? id)
         {
             if (id == null)
@@ -252,7 +252,7 @@ namespace DnDInventorySystem.Controllers
             return View(character);
         }
 
-        // POST: Characters/Edit/5
+        // POST: Characters/Edit/id
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Edit(int id, [Bind("Id,Name,Description,OwnerUserId,ViewableToPlayers")] Character formCharacter, IFormFile? photoFile)
@@ -331,7 +331,7 @@ namespace DnDInventorySystem.Controllers
             return View(character);
         }
 
-        // GET: Characters/Delete/5
+        // GET: Characters/Delete/id
         public async Task<IActionResult> Delete(int? id)
         {
             if (id == null)
@@ -362,12 +362,13 @@ namespace DnDInventorySystem.Controllers
             return View(character);
         }
 
-        // POST: Characters/Delete/5
+        // POST: Characters/Delete/id
         [HttpPost, ActionName("Delete")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
             var character = await _context.Characters.FirstOrDefaultAsync(c => c.Id == id);
+            var gameId = character?.GameId;
             if (character != null)
             {
                 var isOwner = await IsOwnerAsync(character.GameId);
@@ -399,9 +400,9 @@ namespace DnDInventorySystem.Controllers
             }
 
             await _context.SaveChangesAsync();
-            return RedirectToAction(nameof(Index));
+            return RedirectToAction(nameof(Index), new { gameId });
         }
-
+        //Updating a character's inventory
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> UpdateInventory(int characterId, int entryId, int quantity, bool isEquipped)
@@ -433,7 +434,7 @@ namespace DnDInventorySystem.Controllers
 
             return RedirectToAction(nameof(Details), new { id = character.Id });
         }
-
+        // updating all the items in character's inventory
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> UpdateInventoryBulk(int characterId, List<InventoryUpdateRow> updates)
@@ -488,7 +489,7 @@ namespace DnDInventorySystem.Controllers
             await _context.SaveChangesAsync();
             return RedirectToAction(nameof(Details), new { id = character.Id });
         }
-
+        //Removing items from charcater's inventory
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> RemoveInventory(int characterId, int entryId)
@@ -523,11 +524,6 @@ namespace DnDInventorySystem.Controllers
             }
 
             return RedirectToAction(nameof(Details), new { id = character.Id });
-        }
-
-        private bool CharacterExists(int id)
-        {
-            return _context.Characters.Any(e => e.Id == id);
         }
 
         private int GetCurrentUserId()
@@ -582,7 +578,8 @@ namespace DnDInventorySystem.Controllers
             ViewData["OwnerUserId"] = new SelectList(ownerList, "Id", "Name", selectedOwnerId ?? character.OwnerUserId);
         }
 
-        // GET: Characters/AssignItems/5
+        //Assigning items for character's inventory
+        // GET: Characters/AssignItems/id
         public async Task<IActionResult> AssignItems(int id, int page = 1)
         {
             const int PageSize = 10;

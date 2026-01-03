@@ -29,7 +29,7 @@ namespace DnDInventorySystem.Controllers
             _historyLog = historyLog;
             _environment = environment;
         }
-
+        //Returns all the items
         // GET: Items
         public async Task<IActionResult> Index(int? gameId, int page = 1)
         {
@@ -78,8 +78,8 @@ namespace DnDInventorySystem.Controllers
 
             return View(items);
         }
-
-        // GET: Items/Details/5
+        //Returns a specific item details
+        // GET: Items/Details/id
         public async Task<IActionResult> Details(int? id)
         {
             if (id == null)
@@ -114,7 +114,7 @@ namespace DnDInventorySystem.Controllers
             await SetHistorySidebarAsync(item.GameId, isOwner);
             return View(item);
         }
-
+        //Item creation
         // GET: Items/Create
         public async Task<IActionResult> Create(int? gameId, int? returnCharacterId = null)
         {
@@ -143,8 +143,6 @@ namespace DnDInventorySystem.Controllers
         }
 
         // POST: Items/Create
-        // To protect from overposting attacks, enable the specific properties you want to bind to.
-        // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(int gameId, [Bind("Name,Description,CategoryId,ViewableToPlayers")] Item item, IFormFile? photoFile, int? returnCharacterId = null)
@@ -207,8 +205,8 @@ namespace DnDInventorySystem.Controllers
             await SetHistorySidebarAsync(game.Id, isOwner);
             return View(item);
         }
-
-        // GET: Items/Edit/5
+        //Editing item
+        // GET: Items/Edit/id
         public async Task<IActionResult> Edit(int? id)
         {
             if (id == null)
@@ -238,9 +236,7 @@ namespace DnDInventorySystem.Controllers
             return View(item);
         }
 
-        // POST: Items/Edit/5
-        // To protect from overposting attacks, enable the specific properties you want to bind to.
-        // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
+        // POST: Items/Edit/id
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Edit(int id, [Bind("Id,Name,Description,CategoryId,ViewableToPlayers")] Item formItem, IFormFile? photoFile)
@@ -295,10 +291,6 @@ namespace DnDInventorySystem.Controllers
                 item.CategoryId = formItem.CategoryId;
                 await _context.SaveChangesAsync();
                 await LogAsync(item.GameId, "ItemEdited", $"Item {item.Name} edited by {actor}", itemId: item.Id);
-                if (!string.Equals(oldName, item.Name, StringComparison.Ordinal))
-                {
-                    // name change is still covered by edited message; keep simple
-                }
                 return RedirectToAction(nameof(Index), new { gameId = item.GameId });
             }
 
@@ -312,8 +304,8 @@ namespace DnDInventorySystem.Controllers
             await SetHistorySidebarAsync(item.GameId, isOwner);
             return View(item);
         }
-
-        // GET: Items/Delete/5
+        //Item deletion
+        // GET: Items/Delete/id
         public async Task<IActionResult> Delete(int? id)
         {
             if (id == null)
@@ -343,7 +335,7 @@ namespace DnDInventorySystem.Controllers
             return View(item);
         }
 
-        // POST: Items/Delete/5
+        // POST: Items/Delete/id
         [HttpPost, ActionName("Delete")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(int id)
@@ -382,10 +374,6 @@ namespace DnDInventorySystem.Controllers
             return RedirectToAction(nameof(Index), new { gameId = item?.GameId });
         }
 
-        private bool ItemExists(int id)
-        {
-            return _context.Items.Any(e => e.Id == id);
-        }
 
         private Task<Game> GetAuthorizedGameAsync(int gameId)
         {

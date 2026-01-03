@@ -23,7 +23,8 @@ namespace DnDInventorySystem.Controllers
             _context = context;
             _historyLog = historyLog;
         }
-
+        //return all available games for a user
+        // GET: Games
         public async Task<IActionResult> Index()
         {
             var userId = GetCurrentUserId();
@@ -34,7 +35,8 @@ namespace DnDInventorySystem.Controllers
 
             return View(games);
         }
-
+        //Returns specfic game's information
+        // GET: Games/Details/id
         public async Task<IActionResult> Details(int? id)
         {
             if (id == null)
@@ -81,12 +83,14 @@ namespace DnDInventorySystem.Controllers
             await SetHistorySidebarAsync(game.Id, isOwner);
             return View(viewModel);
         }
-
+        //Game creation
+        // GET: Games/Create
         public IActionResult Create()
         {
             return View();
         }
 
+        // POST: Games/Create
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create([Bind("Name,Description")] Game game)
@@ -129,7 +133,8 @@ namespace DnDInventorySystem.Controllers
             TempData["GameMessage"] = $"Game \"{game.Name}\" created.";
             return RedirectToAction(nameof(Index));
         }
-
+        //Editing a game
+        // GET: Games/Edit/id
         public async Task<IActionResult> Edit(int? id)
         {
             if (id == null)
@@ -148,6 +153,7 @@ namespace DnDInventorySystem.Controllers
             return View(game);
         }
 
+        // POST: Games/Edit/id
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Edit(int id, [Bind("Id,Name,Description")] Game updatedGame)
@@ -186,7 +192,8 @@ namespace DnDInventorySystem.Controllers
             await _context.SaveChangesAsync();
             return RedirectToAction(nameof(Index));
         }
-
+        //Deleting a game
+        // GET: Games/Delete/id
         public async Task<IActionResult> Delete(int? id)
         {
             if (id == null)
@@ -206,6 +213,7 @@ namespace DnDInventorySystem.Controllers
             return View(game);
         }
 
+        // POST: Games/Delete/id
         [HttpPost, ActionName("Delete")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(int id)
@@ -220,7 +228,8 @@ namespace DnDInventorySystem.Controllers
 
             return RedirectToAction(nameof(Index));
         }
-
+        //Returns all the game's players
+        // GET: Games/Players/id
         public async Task<IActionResult> Players(int? id)
         {
             if (id == null)
@@ -269,7 +278,8 @@ namespace DnDInventorySystem.Controllers
             await SetHistorySidebarAsync(game.Id, true);
             return View(viewModel);
         }
-
+        //Removes a player from a game
+        // POST: Games/Players/Kick
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> KickPlayer(int gameId, int userId)
@@ -312,7 +322,8 @@ namespace DnDInventorySystem.Controllers
 
             return RedirectToAction(nameof(Players), new { id = game.Id });
         }
-
+        //Edits a users game priviliges
+        // GET: Games/EditPlayerPrivileges
         public async Task<IActionResult> EditPlayerPrivileges(int gameId, int userId)
         {
             var game = await GetOwnedGameAsync(gameId);
@@ -351,6 +362,7 @@ namespace DnDInventorySystem.Controllers
             return View(viewModel);
         }
 
+        // POST: Games/EditPlayerPrivileges
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> EditPlayerPrivileges(EditPlayerPrivilegesViewModel model)
@@ -389,7 +401,8 @@ namespace DnDInventorySystem.Controllers
             TempData["GameMessage"] = $"Updated privileges for {model.UserName}.";
             return RedirectToAction(nameof(Players), new { id = game.Id });
         }
-
+        //Returns the game's join code and generates it
+        // GET: Games/JoinCode/id
         public async Task<IActionResult> JoinCode(int? id)
         {
             if (id == null)
@@ -414,6 +427,7 @@ namespace DnDInventorySystem.Controllers
             return View(viewModel);
         }
 
+        // POST: Games/GenerateJoinCode
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> GenerateJoinCode(int gameId)
@@ -431,7 +445,8 @@ namespace DnDInventorySystem.Controllers
             TempData["GameMessage"] = "Join code generated and activated.";
             return RedirectToAction(nameof(JoinCode), new { id = game.Id });
         }
-
+        //Activates or Deactivates the code
+        // POST: Games/ToggleJoinCode
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> ToggleJoinCode(int gameId, bool activate)
@@ -454,12 +469,14 @@ namespace DnDInventorySystem.Controllers
             TempData["GameMessage"] = activate ? "Join code activated." : "Join code deactivated.";
             return RedirectToAction(nameof(JoinCode), new { id = game.Id });
         }
-
+        //User joining a game via the join code
+        // GET: Games/Join
         public IActionResult Join()
         {
             return View(new JoinGameViewModel());
         }
 
+        // POST: Games/Join
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Join(JoinGameViewModel model)

@@ -4,6 +4,9 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>@ViewData["Title"] - DnDInventorySystem</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,400..800;1,400..800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/layout.css" asp-append-version="true" />
@@ -12,9 +15,9 @@
 <body>
     <header>
         <nav class="navbar navbar-expand top-nav">
-            <div class="container-fluid justify-content-center position-relative">
-                <a class="navbar-brand mx-auto fw-bold" asp-area="" asp-controller="Home" asp-action="Index">DnD Inventory System</a>
-                <div class="position-absolute end-0 d-flex align-items-center gap-2">
+            <div class="container-fluid d-flex align-items-center justify-content-center gap-3">
+                <a class="navbar-brand fw-bold" asp-area="" asp-controller="Home" asp-action="Index">DnD Inventory System</a>
+                <div class="d-flex align-items-center gap-2">
                     @if (User.Identity?.IsAuthenticated ?? false)
                     {
                         <div class="dropdown">

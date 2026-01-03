@@ -25,7 +25,7 @@ namespace DnDInventorySystem.Controllers
             _historyLog = historyLog;
         }
 
-        // GET: Categories
+        // GET: Categories (request to get all category information)
         public async Task<IActionResult> Index(int? gameId, int page = 1)
         {
             const int PageSize = 10;
@@ -83,35 +83,7 @@ namespace DnDInventorySystem.Controllers
             return View(pageCategories);
         }
 
-        // GET: Categories/Details/5
-        public async Task<IActionResult> Details(int? id)
-        {
-            if (id == null)
-            {
-                return NotFound();
-            }
-
-            var category = await _context.Categories
-                .Include(c => c.CreatedByUser)
-                .Include(c => c.Game)
-                .FirstOrDefaultAsync(m => m.Id == id);
-            if (category == null)
-            {
-                return NotFound();
-            }
-
-            var isOwner = await IsOwnerAsync(category.GameId);
-            var privileges = await GetUserPrivilegesAsync(category.GameId, isOwner);
-            if (!isOwner && !privileges.HasFlag(GamePrivilege.ViewCategories))
-            {
-                return NotFound();
-            }
-            ViewBag.CanEditCategory = isOwner || category.CreatedByUserId == GetCurrentUserId();
-            ViewBag.Privileges = privileges;
-            await SetHistorySidebarAsync(category.GameId, isOwner);
-            return View(category);
-        }
-
+        //Category creation
         // GET: Categories/Create
         public async Task<IActionResult> Create(int? gameId)
         {
@@ -140,8 +112,6 @@ namespace DnDInventorySystem.Controllers
         }
 
         // POST: Categories/Create
-        // To protect from overposting attacks, enable the specific properties you want to bind to.
-        // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(int gameId, [Bind("Name")] Category category)
@@ -171,7 +141,8 @@ namespace DnDInventorySystem.Controllers
                 return RedirectToAction(nameof(Index), new { gameId = game.Id });
         }
 
-        // GET: Categories/Edit/5
+        //Editing categories
+        // GET: Categories/Edit/id
         public async Task<IActionResult> Edit(int? id)
         {
             if (id == null)
@@ -198,9 +169,7 @@ namespace DnDInventorySystem.Controllers
             return View(category);
         }
 
-        // POST: Categories/Edit/5
-        // To protect from overposting attacks, enable the specific properties you want to bind to.
-        // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
+        // POST: Categories/Edit/id
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Edit(int id, [Bind("Id,Name,GameId,CreatedByUserId")] Category formCategory)
@@ -258,8 +227,8 @@ namespace DnDInventorySystem.Controllers
             await SetHistorySidebarAsync(category.GameId, isOwner);
             return View(formCategory);
         }
-
-        // GET: Categories/Delete/5
+        //Category deletion
+        // GET: Categories/Delete/id
         public async Task<IActionResult> Delete(int? id)
         {
             if (id == null)
@@ -289,7 +258,7 @@ namespace DnDInventorySystem.Controllers
             return View(category);
         }
 
-        // POST: Categories/Delete/5
+        // POST: Categories/Delete/id
         [HttpPost, ActionName("Delete")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(int id)

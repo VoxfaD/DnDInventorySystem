@@ -19,7 +19,7 @@ namespace DnDInventorySystem.Models
         [Column("Daudzums")]
         public int Quantity { get; set; } = 1;
 
-        // True = equipped/with character; False = stored (stash, chest, etc.)
+        // True = equipped/with character; False = stored 
         [Column("IrLidzi")]
         public bool IsEquipped { get; set; } = false;
     }

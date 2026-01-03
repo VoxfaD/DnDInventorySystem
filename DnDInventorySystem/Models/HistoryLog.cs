@@ -37,8 +37,7 @@ namespace DnDInventorySystem.Models
         [Column("Laiks")]
         public DateTime Timestamp { get; set; } = DateTime.UtcNow;
 
-        // Optional extra info for diffs like "qty 2 → 5" or human-readable message
-        [Column("Detalas")]
+        [Column("Detalas")] // explains in full detail which user changed something in a game
         [StringLength(2000)]
         public string Details { get; set; } = "";
     }

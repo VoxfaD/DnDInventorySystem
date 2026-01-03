@@ -34,6 +34,7 @@ namespace DnDInventorySystem.Controllers
             return View(new LoginViewModel { ReturnUrl = returnUrl });
         }
 
+        // Account Login 
         [HttpPost]
         [AllowAnonymous]
         [ValidateAntiForgeryToken]
@@ -59,7 +60,7 @@ namespace DnDInventorySystem.Controllers
             }
             catch (FormatException)
             {
-                // Seeded users had plain-text passwords; fallback to plain comparison and upgrade to a hash.
+                // For seeded users their passwords are in plaintext, but manually creating a user their password will be ciphered
                 if (string.Equals(user.PasswordHash, model.Password, StringComparison.Ordinal))
                 {
                     user.PasswordHash = _passwordHasher.HashPassword(user, model.Password);
@@ -99,7 +100,7 @@ namespace DnDInventorySystem.Controllers
 
             return View(new RegisterViewModel { ReturnUrl = returnUrl });
         }
-
+        //Account registering
         [HttpPost]
         [AllowAnonymous]
         [ValidateAntiForgeryToken]
@@ -172,6 +173,7 @@ namespace DnDInventorySystem.Controllers
             return RedirectToAction("Index", "Games");
         }
 
+        //Login out of the website
         [Authorize]
         [HttpPost]
         [ValidateAntiForgeryToken]
@@ -198,7 +200,7 @@ namespace DnDInventorySystem.Controllers
 
             return View(vm);
         }
-
+        //Editing user profile
         [Authorize]
         [HttpPost]
         [ValidateAntiForgeryToken]

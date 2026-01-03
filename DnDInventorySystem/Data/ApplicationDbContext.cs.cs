@@ -105,14 +105,14 @@ namespace DnDInventorySystem.Data
                 .HasOne(g => g.CreatedByUser)
                 .WithMany(u => u.CreatedGames)
                 .HasForeignKey(g => g.CreatedByUserId)
-                .OnDelete(DeleteBehavior.Restrict); // keep - avoids huge cascades
+                .OnDelete(DeleteBehavior.Restrict); 
 
             // CATEGORY
             modelBuilder.Entity<Category>()
                 .HasOne(c => c.Game)
                 .WithMany(g => g.Categories)
                 .HasForeignKey(c => c.GameId)
-                .OnDelete(DeleteBehavior.Restrict); // was Cascade; make Restrict to simplify graph
+                .OnDelete(DeleteBehavior.Restrict); 
 
             modelBuilder.Entity<Category>()
                 .HasOne(c => c.CreatedByUser)
@@ -125,7 +125,7 @@ namespace DnDInventorySystem.Data
                 .HasOne(c => c.Game)
                 .WithMany(g => g.Characters)
                 .HasForeignKey(c => c.GameId)
-                .OnDelete(DeleteBehavior.Restrict); // was Cascade; make Restrict
+                .OnDelete(DeleteBehavior.Restrict);
 
             modelBuilder.Entity<Character>()
                 .HasOne(c => c.CreatedByUser)
@@ -144,7 +144,7 @@ namespace DnDInventorySystem.Data
                 .HasOne(i => i.Game)
                 .WithMany(g => g.Items)
                 .HasForeignKey(i => i.GameId)
-                .OnDelete(DeleteBehavior.Restrict); // <<< CHANGE: was Cascade → Restrict
+                .OnDelete(DeleteBehavior.Restrict); 
 
             modelBuilder.Entity<Item>()
                 .HasOne(i => i.CreatedByUser)
@@ -158,7 +158,7 @@ namespace DnDInventorySystem.Data
                 .HasForeignKey(i => i.CategoryId)
                 .OnDelete(DeleteBehavior.SetNull);
 
-            // ITEM-CHARACTER (make both sides Restrict to avoid future cascades)
+            // ITEM-CHARACTER 
             modelBuilder.Entity<ItemCharacter>()
                 .HasOne(ic => ic.Item)
                 .WithMany(i => i.ItemCharacters)

@@ -70,9 +70,9 @@
                 <div class="d-flex flex-wrap gap-2 pt-3">
                     @if (Can(DnDInventorySystem.Models.GamePrivilege.CreateCharacters))
                     {
-                        <a class="btn btn-primary btn-sm" asp-controller="Characters" asp-action="Create" asp-route-gameId="@game.Id">Add character</a>
+                        <a class="btn btn-primary btn-sm" asp-controller="Characters" asp-action="Create" asp-route-gameId="@game.Id">Create character</a>
                     }
-                    <a class="btn btn-outline-secondary btn-sm" asp-controller="Characters" asp-action="Index" asp-route-gameId="@game.Id">Manage characters</a>
+                    <a class="btn btn-outline-secondary btn-sm" asp-controller="Characters" asp-action="Index" asp-route-gameId="@game.Id">Manage</a>
                 </div>
             </div>
         </div>
@@ -115,9 +115,9 @@
                 <div class="d-flex flex-wrap gap-2 pt-3">
                     @if (Can(DnDInventorySystem.Models.GamePrivilege.CreateItems))
                     {
-                        <a class="btn btn-primary btn-sm" asp-controller="Items" asp-action="Create" asp-route-gameId="@game.Id">Add item</a>
+                        <a class="btn btn-primary btn-sm" asp-controller="Items" asp-action="Create" asp-route-gameId="@game.Id">Create item</a>
                     }
-                    <a class="btn btn-outline-secondary btn-sm" asp-controller="Items" asp-action="Index" asp-route-gameId="@game.Id">Manage items</a>
+                    <a class="btn btn-outline-secondary btn-sm" asp-controller="Items" asp-action="Index" asp-route-gameId="@game.Id">Manage</a>
                 </div>
             </div>
         </div>
@@ -160,9 +160,9 @@
                 <div class="d-flex flex-wrap gap-2 pt-3">
                     @if (Can(DnDInventorySystem.Models.GamePrivilege.CreateCategories))
                     {
-                        <a class="btn btn-primary btn-sm" asp-controller="Categories" asp-action="Create" asp-route-gameId="@game.Id">Add category</a>
+                        <a class="btn btn-primary btn-sm" asp-controller="Categories" asp-action="Create" asp-route-gameId="@game.Id">Create category</a>
                     }
-                    <a class="btn btn-outline-secondary btn-sm" asp-controller="Categories" asp-action="Index" asp-route-gameId="@game.Id">Manage categories</a>
+                    <a class="btn btn-outline-secondary btn-sm" asp-controller="Categories" asp-action="Index" asp-route-gameId="@game.Id">Manage</a>
                 </div>
             </div>
         </div>
