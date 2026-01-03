@@ -2,7 +2,6 @@ For visual studio code you will need:
 - C#
 - C# Dev Kit
 - .NET Install Tool
--
 - for visual studio code you will have to open up the
 all of the file and in visual studio code terminal go to where this: ../DnDInventorySystem/DnDInventorySystem is located then run in order these commands:
 
@@ -12,12 +11,17 @@ all of the file and in visual studio code terminal go to where this: ../DnDInven
 -**dotnet ef database update**
 
 -for removal run these:
+
 -**dotnet ef database drop**
+
 -**dotnet ef migrations remove**
 
 -and for building and running the project run these:
+
 -**dotnet run**
+
 -**dotnet build**
+
 
 -for visual studio open up the DnDInventorySystem.slnx and in developer powershell (make sure it is in file ../DnDInventorySystem/DnDInventorySystem) run the same commands, but
 for running the project you can click on where there is a green triangle and it says https
