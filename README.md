@@ -8,7 +8,7 @@ all of the file and in visual studio code terminal go to where this: ../DnDInven
 - (make sure you have created a migrations folder here ../DnDInventorySystem/DnDInventorySystem/Migrations)
 
 - **dotnet ef migrations add InitialCreate**
--**dotnet ef database update**
+- **dotnet ef database update**
 
 - for removal run these:
 
