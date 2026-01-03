@@ -30,105 +30,132 @@
         .ToArray();
 }
 
-<div class="d-flex align-items-center justify-content-between mb-4">
-    <div>
-        <h1 class="mb-1">Players in @game.Name</h1>
-        <div class="text-muted">Manage who can access this game.</div>
+<div class="box game-box">
+    <div class="d-flex align-items-center justify-content-between mb-4">
+        <div>
+            <h1 class="mb-1">Players in @game.Name</h1>
+            <div class="text-muted">Manage who can access this game.</div>
+        </div>
+        <a class="btn btn-link" asp-action="Details" asp-route-id="@game.Id">Back to game</a>
     </div>
-    <a class="btn btn-link" asp-action="Details" asp-route-id="@game.Id">Back to game</a>
-</div>
 
-@if (TempData["GameMessage"] is string status)
-{
-    <div class="alert alert-info">@status</div>
-}
+    @if (TempData["GameMessage"] is string status)
+    {
+        <div class="alert alert-info">@status</div>
+    }
 
-<div class="card shadow-sm">
-    <div class="card-body">
+    <div class="players-table-wrap">
         <div class="table-responsive">
-            <table class="table align-middle">
+            <table class="table table-striped align-middle mb-2">
                 <thead>
                     <tr>
                         <th>Name</th>
-                        <th>Email</th>
                         <th>Role</th>
                         <th class="text-end">Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                @foreach (var player in Model.Players)
-                {
-                    var isOwner = player.UserId == game.CreatedByUserId;
-                    var modalId = $"priv-modal-{player.UserId}";
-                    <tr>
-                        <td class="fw-semibold">@player.User?.Name</td>
-                        <td class="text-muted small">@player.User?.Email</td>
-                        <td class="text-muted small">
-                            @(isOwner ? "Owner" : "Player")
-                        </td>
-                        <td class="text-end">
-                            @if (isOwner)
-                            {
-                            <span class="badge bg-secondary">Owner</span>
-                            }
-                            else
-                            {
-                                <button type="button"
-                                        class="btn btn-sm btn-outline-primary me-2"
-                                        data-bs-toggle="modal"
-                                        data-bs-target="#@modalId">
-                                    Edit privileges
-                                </button>
-                                <form asp-action="KickPlayer" method="post" class="d-inline">
-                                    @Html.AntiForgeryToken()
-                                    <input type="hidden" name="gameId" value="@game.Id" />
-                                    <input type="hidden" name="userId" value="@player.UserId" />
-                                    <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Remove this player from the game?');">Remove</button>
-                                </form>
-                            }
-                        </td>
-                    </tr>
-                    <tr>
-        <td colspan="4">
-            <div class="modal fade" id="@modalId" tabindex="-1" aria-labelledby="@modalId-label" aria-hidden="true">
-                                <div class="modal-dialog modal-lg modal-dialog-centered">
-                                    <div class="modal-content">
-                                        <div class="modal-header">
-                                            <h5 class="modal-title" id="@modalId-label">Edit privileges for @player.User?.Name</h5>
-                                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                                        </div>
-                                        <form asp-action="EditPlayerPrivileges" method="post">
-                                            @Html.AntiForgeryToken()
-                                            <input type="hidden" name="GameId" value="@game.Id" />
-                                            <input type="hidden" name="UserId" value="@player.UserId" />
-                                            <input type="hidden" name="UserName" value="@player.User?.Name" />
-                                            <div class="modal-body">
-                                                <div class="row row-cols-1 row-cols-md-2 g-2">
-                                                    @foreach (var priv in allowedPrivileges)
-                                                    {
-                                                        var isChecked = player.Privileges.HasFlag(priv);
-                                                        <div class="col">
-                                                            <div class="form-check">
-                                                                <input class="form-check-input" type="checkbox" name="SelectedPrivileges" value="@priv" id="@($"{modalId}-{priv}")" @(isChecked ? "checked" : "") />
-                                                                <label class="form-check-label" for="@($"{modalId}-{priv}")">@priv</label>
-                                                            </div>
-                                                        </div>
-                                                    }
-                                                </div>
-                                            </div>
-                                            <div class="modal-footer">
-                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                                                <button type="submit" class="btn btn-primary">Save</button>
-                                            </div>
-                                        </form>
-                                    </div>
-                                </div>
-                            </div>
-                        </td>
-                    </tr>
-                }
-                </tbody>
-            </table>
-        </div>
+                </tr>
+            </thead>
+            <tbody>
+            @foreach (var player in Model.Players)
+            {
+                var isOwner = player.UserId == game.CreatedByUserId;
+                var modalId = $"priv-modal-{player.UserId}";
+                <tr>
+                    <td class="fw-semibold">@player.User?.Name</td>
+                    <td class="text-muted small">
+                        @(isOwner ? "Owner" : "Player")
+                    </td>
+                    <td class="text-end">
+                        @if (isOwner)
+                        {
+                        <span class="badge bg-secondary">Owner</span>
+                        }
+                        else
+                        {
+                            <button type="button"
+                                    class="btn btn-sm btn-outline-primary me-2"
+                                    data-bs-toggle="modal"
+                                    data-bs-target="#@modalId">
+                                Edit privileges
+                            </button>
+                            <form asp-action="KickPlayer" method="post" class="d-inline">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="gameId" value="@game.Id" />
+                                <input type="hidden" name="userId" value="@player.UserId" />
+                                <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Remove this player from the game?');">Remove</button>
+                            </form>
+                        }
+                    </td>
+                </tr>
+            }
+            </tbody>
+        </table>
     </div>
 </div>
+</div>
+
+@foreach (var player in Model.Players)
+{
+    var modalId = $"priv-modal-{player.UserId}";
+    <div class="modal fade" id="@modalId" tabindex="-1" aria-labelledby="@modalId}-label" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="@modalId-label">Edit privileges for @player.User?.Name</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form asp-action="EditPlayerPrivileges" method="post">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="GameId" value="@Model.Game.Id" />
+                    <input type="hidden" name="UserId" value="@player.UserId" />
+                    <input type="hidden" name="UserName" value="@player.User?.Name" />
+                    <div class="modal-body">
+                        <div class="d-flex flex-wrap gap-2 privilege-grid" data-hidden-container="hidden-@modalId">
+                            @foreach (var priv in (ViewBag.AllowedPrivileges as GamePrivilege[] ?? Array.Empty<GamePrivilege>()))
+                            {
+                                var isChecked = player.Privileges.HasFlag(priv);
+                                var label = priv switch
+                                {
+                                    GamePrivilege.CreateItems => "Allow player to create items",
+                                    GamePrivilege.EditItems => "Allow player to edit items",
+                                    GamePrivilege.DeleteItems => "Allow player to delete items",
+                                    GamePrivilege.ViewItems => "Allow player to view items",
+                                    GamePrivilege.CreateCategories => "Allow player to create categories",
+                                    GamePrivilege.EditCategories => "Allow player to edit categories",
+                                    GamePrivilege.DeleteCategories => "Allow player to delete categories",
+                                    GamePrivilege.ViewCategories => "Allow player to view categories",
+                                    GamePrivilege.CreateCharacters => "Allow player to create characters",
+                                    GamePrivilege.EditCharacters => "Allow player to edit characters",
+                                    GamePrivilege.DeleteCharacters => "Allow player to delete characters",
+                                    GamePrivilege.ViewCharacters => "Allow player to view characters",
+                                    GamePrivilege.AddItemsToCharacters => "Allow player to give items to characters",
+                                    GamePrivilege.RemoveItemsFromCharacters => "Allow player to remove items from characters",
+                                    GamePrivilege.EditCharacterInventory => "Allow player to edit character inventory",
+                                    _ => priv.ToString()
+                                };
+                                <button type="button"
+                                        class="btn btn-sm btn-outline-primary privilege-toggle @(isChecked ? "active" : "")"
+                                        data-privilege="@priv"
+                                        data-hidden-container="hidden-@modalId">
+                                    @label
+                                </button>
+                            }
+                        </div>
+                        <div id="hidden-@modalId">
+                            @foreach (var priv in (ViewBag.AllowedPrivileges as GamePrivilege[] ?? Array.Empty<GamePrivilege>()))
+                            {
+                                if (player.Privileges.HasFlag(priv))
+                                {
+                                    <input type="hidden" name="SelectedPrivileges" value="@priv" />
+                                }
+                            }
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Save</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+}

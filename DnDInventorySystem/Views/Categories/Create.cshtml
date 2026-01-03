@@ -6,29 +6,31 @@
     ViewData["Title"] = $"Create category · {gameName}";
 }
 
-<div class="mb-4">
-    <h1 class="mb-1">Create category</h1>
-    <p class="text-muted mb-0">This category will only be available in <strong>@gameName</strong>.</p>
-</div>
+<div class="box game-box game-form-box">
+    <div class="mb-4">
+        <h1 class="mb-1">Create category</h1>
+        <p class="text-muted mb-0">This category will only be available in <strong>@gameName</strong>.</p>
+    </div>
 
-<div class="row">
-    <div class="col-lg-6 col-xl-5">
-        <div class="card shadow-sm">
-            <div class="card-body">
-                <form asp-action="Create">
-                    <input type="hidden" name="gameId" value="@gameId" />
-                    <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
-                    <div class="mb-3">
-                        <label asp-for="Name" class="form-label"></label>
-                        <input asp-for="Name" class="form-control" autofocus />
-                        <span asp-validation-for="Name" class="text-danger"></span>
-                    </div>
+    <div class="row justify-content-center">
+        <div class="col-12 col-xl-9">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <form asp-action="Create">
+                        <input type="hidden" name="gameId" value="@gameId" />
+                        <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+                        <div class="mb-3">
+                            <label asp-for="Name" class="form-label"></label>
+                            <input asp-for="Name" class="form-control" autofocus />
+                            <span asp-validation-for="Name" class="text-danger"></span>
+                        </div>
 
-                    <div class="d-flex gap-2">
-                        <button type="submit" class="btn btn-primary">Create category</button>
-                        <a class="btn btn-link" asp-controller="Games" asp-action="Details" asp-route-id="@gameId">Back to game</a>
-                    </div>
-                </form>
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-primary">Create category</button>
+                            <a class="btn btn-link" asp-controller="Games" asp-action="Details" asp-route-id="@gameId">Back to game</a>
+                        </div>
+                    </form>
+                </div>
             </div>
         </div>
     </div>

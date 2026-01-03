@@ -6,117 +6,131 @@
     var isOwner = ViewBag.IsOwner as bool? ?? false;
     var privileges = ViewBag.Privileges as DnDInventorySystem.Models.GamePrivilege? ?? DnDInventorySystem.Models.GamePrivilege.None;
 }
+<div class="box">
+    <h1>Categories</h1>
 
-<h1>Index</h1>
-
-@if (ViewData["CurrentGameId"] is int gameId)
-{
-    <div class="mb-3">
-        <a class="btn btn-link ps-0" asp-controller="Games" asp-action="Details" asp-route-id="@gameId">Back to game</a>
-    </div>
-}
-
-@if (TempData["CategoryMessage"] is string catMsg)
-{
-    <div class="alert alert-warning">@catMsg</div>
-}
-
-<p>
-@{
-    var currentGameId = ViewData["CurrentGameId"] as int?;
-}
-@if (currentGameId.HasValue)
-{
-    if (isOwner || privileges.HasFlag(DnDInventorySystem.Models.GamePrivilege.CreateCategories))
+    @if (TempData["CategoryMessage"] is string catMsg)
     {
-        <a asp-action="Create" asp-route-gameId="@currentGameId">Create New</a>
+        <div class="alert alert-warning">@catMsg</div>
     }
-}
-else
-{
-    <span class="text-muted">Select a game to create a category.</span>
-}
-</p>
-<table class="table align-middle">
-    <thead>
-        <tr>
-            <th>Name</th>
-            <th>Creator</th>
-            <th class="text-end">Actions</th>
-        </tr>
-    </thead>
-    <tbody>
-@foreach (var item in Model)
-{
-        var collapseId = $"cat-items-{item.Id}";
-        <tr>
-            <td>
-                <button class="btn btn-link p-0 text-decoration-none" type="button" data-bs-toggle="collapse" data-bs-target="#@collapseId" aria-expanded="false" aria-controls="@collapseId">
-                    @item.Name
-                </button>
-            </td>
-            <td>@item.CreatedByUser?.Name</td>
-            <td class="text-end">
-                @if (isOwner || (privileges.HasFlag(DnDInventorySystem.Models.GamePrivilege.EditCategories) && item.CreatedByUserId == currentUserId))
-                {
-                    <a class="btn btn-sm btn-outline-primary" asp-action="Edit" asp-route-id="@item.Id">Edit</a>
-                }
-                @if (isOwner || (privileges.HasFlag(DnDInventorySystem.Models.GamePrivilege.DeleteCategories) && item.CreatedByUserId == currentUserId))
-                {
-                    <form asp-action="Delete" asp-route-id="@item.Id" method="post" class="d-inline">
-                        @Html.AntiForgeryToken()
-                        <button type="submit" class="btn btn-sm btn-outline-danger"
-                                onclick="return confirm('Are you sure you want to delete @item.Name?');">
-                            Delete
-                        </button>
-                    </form>
-                }
-                else
+
+    @{
+        var currentGameId = ViewData["CurrentGameId"] as int?;
+    }
+    @if (currentGameId.HasValue)
+    {
+        <div class="d-flex justify-content-center gap-2 align-items-center mb-3">
+            <a class="btn btn-secondary" asp-controller="Games" asp-action="Details" asp-route-id="@currentGameId">Back to game</a>
+            @if (isOwner || privileges.HasFlag(DnDInventorySystem.Models.GamePrivilege.CreateCategories))
+            {
+                <a class="btn btn-primary create-btn" asp-action="Create" asp-route-gameId="@currentGameId">Create New</a>
+            }
+        </div>
+    }
+    else
+    {
+        <p class="text-muted">Select a game to create a category.</p>
+    }
+    <div class="categories-table-wrap">
+        <table class="table table-striped align-middle mb-2">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th class="text-end">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+    @foreach (var item in Model)
+    {
+                var collapseId = $"cat-items-{item.Id}";
+                <tr class="table-row-link" data-target="#@collapseId" data-href="#">
+                    <td>@item.Name</td>
+                    <td class="text-end">
+                        @if (isOwner || (privileges.HasFlag(DnDInventorySystem.Models.GamePrivilege.EditCategories) && item.CreatedByUserId == currentUserId))
+                        {
+                            <a class="btn btn-sm btn-outline-primary no-row-toggle" asp-action="Edit" asp-route-id="@item.Id">Edit</a>
+                        }
+                        @if (isOwner || (privileges.HasFlag(DnDInventorySystem.Models.GamePrivilege.DeleteCategories) && item.CreatedByUserId == currentUserId))
+                        {
+                            <form asp-action="Delete" asp-route-id="@item.Id" method="post" class="d-inline no-row-toggle">
+                                @Html.AntiForgeryToken()
+                                <button type="submit" class="btn btn-sm btn-outline-danger"
+                                        onclick="return confirm('Are you sure you want to delete @item.Name?');">
+                                    Delete
+                                </button>
+                            </form>
+                        }
+                        else
                 {
                     <span class="text-muted small">View only</span>
                 }
             </td>
         </tr>
-        <tr class="collapse" id="@collapseId">
-            <td colspan="4" class="bg-light">
+        <tr class="collapse collapse-row" id="@collapseId">
+            <td colspan="2" class="bg-light">
                 <div class="fw-semibold mb-2">Items in @item.Name</div>
                 @if (item.Items == null || !item.Items.Any())
                 {
                     <div class="text-muted small">No items in this category.</div>
                 }
-                else
-                {
-                    <ul class="list-unstyled mb-0">
-                        @foreach (var it in item.Items)
+                        else
                         {
-                            <li class="mb-1 d-flex justify-content-between">
-                                <span>@it.Name</span>
-                                <a class="small" asp-controller="Items" asp-action="Details" asp-route-id="@it.Id">Open</a>
-                            </li>
+                            <div class="table-responsive">
+                                <table class="table table-striped align-middle mb-0">
+                                    <thead>
+                                        <tr>
+                                            <th style="width:110px;">Picture</th>
+                                            <th>Name</th>
+                                            <th class="text-end">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                    @foreach (var it in item.Items)
+                                    {
+                                        <tr>
+                                            <td>
+                                                @if (!string.IsNullOrWhiteSpace(it.PhotoUrl))
+                                                {
+                                                    <img src="@it.PhotoUrl" alt="@it.Name" class="img-fluid rounded" style="max-width:80px; max-height:80px; object-fit:cover;" />
+                                                }
+                                                else
+                                                {
+                                                    <span class="text-muted small">No picture</span>
+                                                }
+                                            </td>
+                                            <td class="fw-semibold">@it.Name</td>
+                                            <td class="text-end">
+                                                <a class="btn btn-sm btn-primary" asp-controller="Items" asp-action="Details" asp-route-id="@it.Id">Open</a>
+                                            </td>
+                                        </tr>
+                                    }
+                                    </tbody>
+                                </table>
+                            </div>
                         }
-                    </ul>
-                }
-            </td>
-        </tr>
-}
-    </tbody>
-</table>
+                    </td>
+                </tr>
+    }
+            </tbody>
+        </table>
+    </div>
 
-@{
-    var pageNumber = ViewBag.Page as int? ?? 1;
-    var totalPages = ViewBag.TotalPages as int? ?? 1;
-}
-@if (totalPages > 1)
-{
-    <nav aria-label="Categories pagination">
-        <ul class="pagination">
-            <li class="page-item @(pageNumber <= 1 ? "disabled" : "")">
-                <a class="page-link" asp-action="Index" asp-route-gameId="@ViewData["CurrentGameId"]" asp-route-page="@(pageNumber - 1)">Previous</a>
-            </li>
-            <li class="page-item disabled"><span class="page-link">Page @pageNumber of @totalPages</span></li>
-            <li class="page-item @(pageNumber >= totalPages ? "disabled" : "")">
-                <a class="page-link" asp-action="Index" asp-route-gameId="@ViewData["CurrentGameId"]" asp-route-page="@(pageNumber + 1)">Next</a>
-            </li>
-        </ul>
-    </nav>
-}
+    @{
+        var pageNumber = ViewBag.Page as int? ?? 1;
+        var totalPages = ViewBag.TotalPages as int? ?? 1;
+    }
+    @if (totalPages > 1)
+    {
+        <nav aria-label="Categories pagination">
+            <ul class="pagination">
+                <li class="page-item @(pageNumber <= 1 ? "disabled" : "")">
+                    <a class="page-link" asp-action="Index" asp-route-gameId="@ViewData["CurrentGameId"]" asp-route-page="@(pageNumber - 1)">Previous</a>
+                </li>
+                <li class="page-item disabled"><span class="page-link">Page @pageNumber of @totalPages</span></li>
+                <li class="page-item @(pageNumber >= totalPages ? "disabled" : "")">
+                    <a class="page-link" asp-action="Index" asp-route-gameId="@ViewData["CurrentGameId"]" asp-route-page="@(pageNumber + 1)">Next</a>
+                </li>
+            </ul>
+        </nav>
+    }
+</div>

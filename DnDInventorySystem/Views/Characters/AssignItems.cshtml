@@ -5,72 +5,64 @@
     ViewData["Title"] = $"Assign items · {character.Name}";
 }
 
-<div class="mb-4 d-flex justify-content-between align-items-center">
-    <div>
-        <h1 class="mb-1">Assign items</h1>
-        <p class="text-muted mb-0">Give items from <strong>@character.Game?.Name</strong> to <strong>@character.Name</strong>.</p>
+<div class="box game-box">
+    <div class="mb-4 d-flex justify-content-between align-items-center">
+        <div>
+            <h1 class="mb-1">Assign items</h1>
+            <p class="text-muted mb-0">Give items from <strong>@character.Game?.Name</strong> to <strong>@character.Name</strong>.</p>
+        </div>
+        <div class="d-flex gap-2">
+            <a class="btn btn-outline-secondary" asp-action="Details" asp-route-id="@character.Id">Back to character</a>
+        </div>
     </div>
-    <div class="d-flex gap-2">
-        <a class="btn btn-outline-secondary" asp-action="Details" asp-route-id="@character.Id">Back to character</a>
-    </div>
-</div>
 
-<div class="card shadow-sm mb-4">
-    <div class="card-body">
+    <form asp-action="AssignItems" method="post">
         <div class="d-flex justify-content-between align-items-center mb-3">
             <h5 class="card-title mb-0">Select items</h5>
-            <a class="btn btn-sm btn-primary" asp-controller="Items" asp-action="Create" asp-route-gameId="@character.GameId" asp-route-returnCharacterId="@character.Id">Create item</a>
+            <div class="d-flex gap-2">
+                <a class="btn btn-sm btn-primary" asp-controller="Items" asp-action="Create" asp-route-gameId="@character.GameId" asp-route-returnCharacterId="@character.Id">Create item</a>
+                <button type="submit" class="btn btn-sm btn-success">Assign selected</button>
+            </div>
         </div>
 
-        <form asp-action="AssignItems" method="post">
-            <input type="hidden" asp-for="CharacterId" />
-            <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+        <input type="hidden" asp-for="CharacterId" />
+        <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
 
-            <div class="table-responsive">
-                <table class="table align-middle">
-                    <thead>
-                        <tr>
-                            <th style="width:40px;"></th>
-                            <th>Item</th>
-                            <th>Description</th>
-                            <th style="width:120px;">Quantity</th>
-                            <th style="width:130px;">With them?</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @for (int i = 0; i < Model.Assignments.Count; i++)
-                        {
-                            <tr>
-                                <td>
-                                    <input class="form-check-input" asp-for="Assignments[i].Selected" />
-                                    <input type="hidden" asp-for="Assignments[i].ItemId" />
-                                </td>
-                                <td>
-                                    <div class="fw-semibold">@Model.Assignments[i].ItemName</div>
-                                    <div class="text-muted small">@Model.Assignments[i].CategoryName</div>
-                                    <input type="hidden" asp-for="Assignments[i].ItemName" />
-                                    <input type="hidden" asp-for="Assignments[i].CategoryName" />
-                                </td>
-                                <td class="text-muted small">
-                                    @(string.IsNullOrWhiteSpace(Model.Assignments[i].Description) ? "No description" : Model.Assignments[i].Description)
-                                    <input type="hidden" asp-for="Assignments[i].Description" />
-                                </td>
-                                <td>
-                                    <input asp-for="Assignments[i].Quantity" class="form-control form-control-sm" min="1" type="number" />
-                                </td>
-                                <td>
-                                    <input class="form-check-input" asp-for="Assignments[i].IsEquipped" />
+        <div class="table-responsive">
+            <table class="table table-striped align-middle assign-table">
+                <thead>
+                    <tr>
+                        <th>Item</th>
+                        <th style="width:120px;">Quantity</th>
+                        <th style="width:130px;">With them?</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @for (int i = 0; i < Model.Assignments.Count; i++)
+                    {
+                        <tr class="assign-row @(Model.Assignments[i].Selected ? "selected" : "")" data-row-index="@i">
+                            <td>
+                                <div class="fw-semibold">@Model.Assignments[i].ItemName</div>
+                                <div class="text-muted small">@Model.Assignments[i].CategoryName</div>
+                                <input type="hidden" asp-for="Assignments[i].ItemId" />
+                                <input type="hidden" asp-for="Assignments[i].ItemName" />
+                                <input type="hidden" asp-for="Assignments[i].CategoryName" />
+                            </td>
+                            <td>
+                                <input asp-for="Assignments[i].Quantity" class="form-control form-control-sm no-row-toggle" min="1" type="number" />
+                            </td>
+                            <td>
+                                <input type="hidden" name="Assignments[@i].Selected" value="@(Model.Assignments[i].Selected ? "true" : "false")" class="assignment-selected" data-row-index="@i" />
+                                <div class="form-check d-flex align-items-center gap-2">
+                                    <input class="form-check-input carry-toggle no-row-toggle" asp-for="Assignments[i].IsEquipped" />
                                     <label class="form-check-label small">Carried</label>
-                                </td>
-                            </tr>
-                        }
-                    </tbody>
-                </table>
-            </div>
-
-            <button type="submit" class="btn btn-success">Assign selected</button>
-        </form>
-
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
         @{
             var pageNumber = Model.Page;
             var totalPages = Model.TotalPages;
@@ -78,16 +70,76 @@
         @if (totalPages > 1)
         {
             <nav aria-label="Assign items pagination" class="mt-3">
-                <ul class="pagination">
+                <ul class="pagination pagination-center">
                     <li class="page-item @(pageNumber <= 1 ? "disabled" : "")">
-                        <a class="page-link" asp-action="AssignItems" asp-route-id="@character.Id" asp-route-page="@(pageNumber - 1)">Previous</a>
+                        <a class="page-link assign-page-link" asp-action="AssignItems" asp-route-id="@character.Id" asp-route-page="@(pageNumber - 1)">Previous</a>
                     </li>
                     <li class="page-item disabled"><span class="page-link">Page @pageNumber of @totalPages</span></li>
                     <li class="page-item @(pageNumber >= totalPages ? "disabled" : "")">
-                        <a class="page-link" asp-action="AssignItems" asp-route-id="@character.Id" asp-route-page="@(pageNumber + 1)">Next</a>
+                        <a class="page-link assign-page-link" asp-action="AssignItems" asp-route-id="@character.Id" asp-route-page="@(pageNumber + 1)">Next</a>
                     </li>
                 </ul>
             </nav>
         }
-    </div>
+    </form>
 </div>
+
+@section Scripts {
+    <script>
+        (() => {
+            const storageKey = `assignSelections-@character.Id`;
+
+            const loadSelections = () => {
+                try {
+                    return JSON.parse(localStorage.getItem(storageKey) || "{}");
+                } catch {
+                    return {};
+                }
+            };
+
+            const saveSelections = (map) => {
+                localStorage.setItem(storageKey, JSON.stringify(map));
+            };
+
+            const applySelections = () => {
+                const map = loadSelections();
+                document.querySelectorAll(".assign-row").forEach((row) => {
+                    const idx = row.dataset.rowIndex;
+                    const itemIdInput = row.querySelector('input[name="Assignments[' + idx + '].ItemId"]');
+                    if (!itemIdInput) return;
+                    const itemId = itemIdInput.value;
+                    const selected = map[itemId];
+                    const hidden = row.querySelector('.assignment-selected');
+                    if (selected === true || selected === false) {
+                        row.classList.toggle("selected", selected);
+                        if (hidden) hidden.value = selected ? "true" : "false";
+                    }
+                });
+            };
+
+            const persistCurrentSelections = () => {
+                const map = loadSelections();
+                document.querySelectorAll(".assign-row").forEach((row) => {
+                    const idx = row.dataset.rowIndex;
+                    const itemIdInput = row.querySelector('input[name="Assignments[' + idx + '].ItemId"]');
+                    const hidden = row.querySelector('.assignment-selected');
+                    if (!itemIdInput || !hidden) return;
+                    map[itemIdInput.value] = hidden.value === "true";
+                });
+                saveSelections(map);
+            };
+
+            document.querySelectorAll(".assign-row").forEach((row) => {
+                row.addEventListener("click", () => persistCurrentSelections());
+            });
+
+            document.querySelectorAll(".assign-page-link").forEach((link) => {
+                link.addEventListener("click", () => {
+                    persistCurrentSelections();
+                });
+            });
+
+            applySelections();
+        })();
+    </script>
+}

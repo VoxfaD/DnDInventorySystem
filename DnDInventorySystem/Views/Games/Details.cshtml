@@ -9,30 +9,31 @@
     bool Can(DnDInventorySystem.Models.GamePrivilege flag) => privileges.HasFlag(flag);
 }
 
-<div class="d-flex align-items-center justify-content-between mb-4">
-    <div>
-        <h1 class="mb-1">@game.Name</h1>
-        <div class="text-muted">Hosted by @game.CreatedByUser?.Name · @game.CreatedAt.ToString("f")</div>
+<div class="box game-box">
+    <div class="d-flex align-items-center justify-content-between mb-4">
+        <div>
+            <h1 class="mb-1">@game.Name</h1>
+            <div class="text-muted">Hosted by @game.CreatedByUser?.Name · @game.CreatedAt.ToString("f")</div>
+        </div>
+        <div class="d-flex gap-2">
+            @if (canEdit)
+            {
+                <a class="btn btn-outline-primary" asp-action="JoinCode" asp-route-id="@game.Id">Manage join code</a>
+                <a class="btn btn-outline-secondary" asp-action="Players" asp-route-id="@game.Id">Players</a>
+                <a class="btn btn-outline-secondary" asp-action="Edit" asp-route-id="@game.Id">Edit</a>
+            }
+            <a class="btn btn-link" asp-action="Index">Back to games</a>
+        </div>
     </div>
-    <div class="d-flex gap-2">
-        @if (canEdit)
-        {
-            <a class="btn btn-outline-primary" asp-action="JoinCode" asp-route-id="@game.Id">Manage join code</a>
-            <a class="btn btn-outline-secondary" asp-action="Players" asp-route-id="@game.Id">Players</a>
-            <a class="btn btn-outline-secondary" asp-action="Edit" asp-route-id="@game.Id">Edit</a>
-        }
-        <a class="btn btn-link" asp-action="Index">Back to games</a>
-    </div>
-</div>
 
-<div class="card mb-5">
-    <div class="card-body">
-        <h5 class="card-title">Description</h5>
-        <p class="card-text">@game.Description</p>
+    <div class="card mb-5">
+        <div class="card-body">
+            <h5 class="card-title">Description</h5>
+            <p class="card-text">@game.Description</p>
+        </div>
     </div>
-</div>
 
-<div class="row g-4">
+    <div class="row g-4">
 @if (Can(DnDInventorySystem.Models.GamePrivilege.ViewCharacters))
 {
     <div class="col-lg-4">
@@ -43,7 +44,7 @@
                         <h5 class="mb-1">Characters</h5>
                         <div class="text-muted small">Add heroes, edit them, and assign them to users.</div>
                     </div>
-                    <span class="badge bg-secondary">@Model.CharacterCount</span>
+                    <span class="badge count-badge">@Model.CharacterCount</span>
                 </div>
                 <div class="flex-grow-1">
                     @if (Model.CharacterCount == 0)
@@ -88,7 +89,7 @@
                         <h5 class="mb-1">Items</h5>
                         <div class="text-muted small">Create items and hand them out to characters.</div>
                     </div>
-                    <span class="badge bg-secondary">@Model.ItemCount</span>
+                    <span class="badge count-badge">@Model.ItemCount</span>
                 </div>
                 <div class="flex-grow-1">
                     @if (Model.ItemCount == 0)
@@ -133,7 +134,7 @@
                         <h5 class="mb-1">Categories</h5>
                         <div class="text-muted small">Organize gear and tag items with categories.</div>
                     </div>
-                    <span class="badge bg-secondary">@Model.CategoryCount</span>
+                    <span class="badge count-badge">@Model.CategoryCount</span>
                 </div>
                 <div class="flex-grow-1">
                     @if (Model.CategoryCount == 0)
@@ -168,4 +169,5 @@
         </div>
     </div>
 }
+    </div>
 </div>

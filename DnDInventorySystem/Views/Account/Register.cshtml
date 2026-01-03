@@ -3,10 +3,9 @@
     ViewData["Title"] = "Create account";
 }
 
-<h1 class="mb-4">Create account</h1>
-
-<div class="row">
-    <div class="col-md-6">
+<div class="auth-shell">
+    <div class="box">
+        <h1 class="mb-4">Create account</h1>
         <form asp-action="Register" method="post">
             <div asp-validation-summary="ModelOnly" class="text-danger"></div>
             <input type="hidden" asp-for="ReturnUrl" />
@@ -36,6 +35,7 @@
             </div>
 
             <button type="submit" class="btn btn-primary">Create account</button>
+            <a class="btn btn-link" asp-action="Login" asp-route-returnUrl="@Model.ReturnUrl">Back to login</a>
         </form>
     </div>
 </div>

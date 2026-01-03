@@ -241,15 +241,22 @@ namespace DnDInventorySystem.Controllers
             }
 
             var trimmedDisplayName = model.DisplayName.Trim();
-            var nameExists = await _context.Users
-                .AnyAsync(u => u.Id != user.Id && u.Name == trimmedDisplayName);
-            if (nameExists)
+            if (string.IsNullOrWhiteSpace(trimmedDisplayName))
             {
-                ModelState.AddModelError(nameof(model.DisplayName), "Username already exists!");
+                ModelState.AddModelError(nameof(model.DisplayName), "Username is required!");
                 return View(model);
             }
 
-            user.Name = model.DisplayName.Trim();
+            var lowered = trimmedDisplayName.ToLower();
+            var nameExists = await _context.Users
+                .AnyAsync(u => u.Id != user.Id && u.Name.ToLower() == lowered);
+            if (nameExists)
+            {
+                ModelState.AddModelError(nameof(model.DisplayName), "That username is already taken.");
+                return View(model);
+            }
+
+            user.Name = trimmedDisplayName;
             user.Email = model.Email.Trim();
             _context.Users.Update(user);
             await _context.SaveChangesAsync();

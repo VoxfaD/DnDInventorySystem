@@ -7,37 +7,31 @@
     var privileges = ViewBag.Privileges as DnDInventorySystem.Models.GamePrivilege? ?? DnDInventorySystem.Models.GamePrivilege.None;
 }
 
-<h1>Index</h1>
+<div class="box game-box">
+<h1>Characters</h1>
 
-@if (ViewData["CurrentGameId"] is int gameId)
-{
-    <div class="mb-3">
-        <a class="btn btn-link ps-0" asp-controller="Games" asp-action="Details" asp-route-id="@gameId">Back to game</a>
-    </div>
-}
-
-<p>
 @{
     var currentGameId = ViewData["CurrentGameId"] as int?;
 }
 @if (currentGameId.HasValue)
 {
-    if (isOwner || privileges.HasFlag(DnDInventorySystem.Models.GamePrivilege.CreateCharacters))
-    {
-        <a asp-action="Create" asp-route-gameId="@currentGameId">Create New</a>
-    }
+    <div class="d-flex justify-content-center gap-2 align-items-center mb-3">
+        <a class="btn btn-secondary" asp-controller="Games" asp-action="Details" asp-route-id="@currentGameId">Back to game</a>
+        @if (isOwner || privileges.HasFlag(DnDInventorySystem.Models.GamePrivilege.CreateCharacters))
+        {
+            <a class="btn btn-primary create-btn" asp-action="Create" asp-route-gameId="@currentGameId">Create New</a>
+        }
+    </div>
 }
 else
 {
-    <span class="text-muted">Select a game to create a character.</span>
+    <p class="text-muted">Select a game to create a character.</p>
 }
-</p>
-<table class="table align-middle">
+<table class="table table-striped align-middle">
     <thead>
         <tr>
-            <th style="width: 70px;">Portrait</th>
+            <th style="width: 110px;">Picture</th>
             <th>Name</th>
-            <th>Description</th>
             <th>Owner</th>
             <th class="text-end">Actions</th>
         </tr>
@@ -48,15 +42,14 @@ else
             <td>
                 @if (!string.IsNullOrWhiteSpace(item.PhotoUrl))
                 {
-                    <img src="@item.PhotoUrl" alt="@item.Name" class="img-fluid rounded" style="max-width:64px; max-height:64px; object-fit:cover;" />
+                    <img src="@item.PhotoUrl" alt="@item.Name" class="img-fluid rounded" style="max-width:80px; max-height:80px; object-fit:cover;" />
                 }
                 else
                 {
-                    <span class="text-muted small">No image</span>
+                    <span class="text-muted small">No picture</span>
                 }
             </td>
             <td class="fw-semibold">@item.Name</td>
-            <td class="text-muted small">@item.Description</td>
             <td class="text-muted small">@item.Owner?.Name</td>
             <td class="text-end">
                 @if (isOwner || (privileges.HasFlag(DnDInventorySystem.Models.GamePrivilege.EditCharacters) && (item.CreatedByUserId == currentUserId || item.OwnerUserId == currentUserId)))
@@ -86,7 +79,7 @@ else
 @if (totalPages > 1)
 {
     <nav aria-label="Characters pagination">
-        <ul class="pagination">
+        <ul class="pagination pagination-center">
             <li class="page-item @(pageNumber <= 1 ? "disabled" : "")">
                 <a class="page-link" asp-action="Index" asp-route-gameId="@ViewData["CurrentGameId"]" asp-route-page="@(pageNumber - 1)">Previous</a>
             </li>
@@ -97,3 +90,4 @@ else
         </ul>
     </nav>
 }
+</div>

@@ -41,6 +41,7 @@ namespace DnDInventorySystem.Controllers
                 .Include(c => c.Game)
                 .Include(c => c.Owner)
                 .AsQueryable();
+            bool isOwner = false;
 
             if (gameId.HasValue)
             {
@@ -50,7 +51,7 @@ namespace DnDInventorySystem.Controllers
                     return NotFound();
                 }
                 charactersQuery = charactersQuery.Where(c => c.GameId == gameId.Value);
-                var isOwner = await IsOwnerAsync(gameId.Value);
+                isOwner = await IsOwnerAsync(gameId.Value);
                 var userId = GetCurrentUserId();
                 if (!isOwner)
                 {
@@ -80,6 +81,10 @@ namespace DnDInventorySystem.Controllers
                 .ToListAsync();
             ViewBag.Page = page;
             ViewBag.TotalPages = (int)Math.Ceiling(totalCount / (double)PageSize);
+            if (gameId.HasValue)
+            {
+                await SetHistorySidebarAsync(gameId.Value, isOwner);
+            }
             return View(characters);
         }
 

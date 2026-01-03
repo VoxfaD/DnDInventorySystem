@@ -1,0 +1,31 @@
+/* Layout-specific styles migrated from scoped file */
+a.navbar-brand {
+  white-space: normal;
+  text-align: center;
+  word-break: break-all;
+}
+
+:root {
+  --link-color: #304b86;
+  --link-hover: #233561;
+}
+
+a {
+  color: var(--link-color);
+}
+
+a:hover,
+a:focus {
+  color: var(--link-hover);
+}
+
+.footer {
+  position: absolute;
+  bottom: 0;
+  width: 100%;
+  white-space: nowrap;
+  line-height: 60px;
+  background-color: #503b70;
+  color: #f7f9fb;
+  border-top: 0;
+}

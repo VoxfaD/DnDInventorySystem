@@ -5,16 +5,17 @@
     var hasGames = Model.Any();
 }
 
-<div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3 mb-4">
-    <div>
-        <h1 class="mb-1">Select a game session</h1>
-        <p class="text-muted mb-0">Create a new campaign or join one that already exists.</p>
+<div class="box game-box">
+    <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3 mb-4">
+        <div>
+            <h1 class="mb-1">Select a game session</h1>
+            <p class="text-muted mb-0">Create a new campaign or join one that already exists.</p>
+        </div>
+        <div class="d-flex gap-2">
+            <a class="btn btn-outline-secondary" asp-action="Join">Join game</a>
+            <a class="btn btn-primary" asp-action="Create">Create game</a>
+        </div>
     </div>
-    <div class="d-flex gap-2">
-        <a class="btn btn-outline-secondary" asp-action="Join">Join game</a>
-        <a class="btn btn-primary" asp-action="Create">Create game</a>
-    </div>
-</div>
 
 @if (TempData["GameMessage"] is string message)
 {
@@ -34,7 +35,6 @@ else
             <thead>
                 <tr>
                     <th>Name</th>
-                    <th>Description</th>
                     <th>Created</th>
                     <th>Game master</th>
                     <th class="text-end">Actions</th>
@@ -43,24 +43,24 @@ else
             <tbody>
             @foreach (var item in Model)
             {
-                <tr>
+                <tr class="table-row-link" data-href="@Url.Action("Details", "Games", new { id = item.Id })">
                     <td>@item.Name</td>
-                    <td>@item.Description</td>
                     <td>@item.CreatedAt.ToString("g")</td>
                     <td>@item.CreatedByUser?.Name</td>
                     <td class="text-end">
-                        <a class="btn btn-sm btn-outline-primary" asp-action="Details" asp-route-id="@item.Id">Open</a>
-                        @if (User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value == item.CreatedByUserId.ToString())
-                        {
-                            <a class="btn btn-sm btn-outline-secondary" asp-action="Edit" asp-route-id="@item.Id">Edit</a>
-                            <form asp-action="Delete" asp-route-id="@item.Id" method="post" class="d-inline">
-                                @Html.AntiForgeryToken()
-                                <button type="submit" class="btn btn-sm btn-outline-danger"
-                                        onclick="return confirm('Are you sure you want to delete @item.Name?');">
-                                    Delete
-                                </button>
-                            </form>
-                        }
+                        <div class="d-inline-flex align-items-center gap-2">
+                            @if (User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value == item.CreatedByUserId.ToString())
+                            {
+                                <a class="btn btn-sm btn-outline-secondary" asp-action="Edit" asp-route-id="@item.Id">Edit</a>
+                                <form asp-action="Delete" asp-route-id="@item.Id" method="post" class="d-inline">
+                                    @Html.AntiForgeryToken()
+                                    <button type="submit" class="btn btn-sm btn-outline-danger"
+                                            onclick="return confirm('Are you sure you want to delete @item.Name?');">
+                                        Delete
+                                    </button>
+                                </form>
+                            }
+                        </div>
                     </td>
                 </tr>
             }
@@ -68,3 +68,4 @@ else
         </table>
     </div>
 }
+</div>

@@ -1,35 +1,40 @@
 @model DnDInventorySystem.Models.Game
 
 @{
-    ViewData["Title"] = "Edit";
+    ViewData["Title"] = $"Edit game · {Model.Name}";
 }
 
-<div class="d-flex align-items-center justify-content-between mb-3">
-    <h1 class="mb-0">Edit game</h1>
-    <a asp-action="Index" class="btn btn-link">Back to games</a>
-</div>
+<div class="box game-box game-form-box">
+    <div class="mb-4">
+        <h1 class="mb-1">Edit game</h1>
+        <p class="text-muted mb-0">Update details for <strong>@Model.Name</strong>.</p>
+    </div>
 
-<div class="row">
-    <div class="col-md-6 col-lg-5">
-        <form asp-controller="Games" asp-action="Edit" method="post">
-            @Html.AntiForgeryToken()
-            <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
-            <input type="hidden" asp-for="Id" />
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <form asp-controller="Games" asp-action="Edit" method="post">
+                @Html.AntiForgeryToken()
+                <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+                <input type="hidden" asp-for="Id" />
 
-            <div class="mb-3">
-                <label asp-for="Name" class="form-label"></label>
-                <input asp-for="Name" class="form-control" />
-                <span asp-validation-for="Name" class="text-danger"></span>
-            </div>
+                <div class="mb-3">
+                    <label asp-for="Name" class="form-label"></label>
+                    <input asp-for="Name" class="form-control" autofocus />
+                    <span asp-validation-for="Name" class="text-danger"></span>
+                </div>
 
-            <div class="mb-3">
-                <label asp-for="Description" class="form-label"></label>
-                <textarea asp-for="Description" class="form-control" rows="3"></textarea>
-                <span asp-validation-for="Description" class="text-danger"></span>
-            </div>
+                <div class="mb-3">
+                    <label asp-for="Description" class="form-label"></label>
+                    <textarea asp-for="Description" class="form-control" rows="3"></textarea>
+                    <span asp-validation-for="Description" class="text-danger"></span>
+                </div>
 
-            <button type="submit" class="btn btn-primary">Save changes</button>
-        </form>
+                <div class="d-flex gap-2">
+                    <button type="submit" class="btn btn-primary">Save changes</button>
+                    <a asp-action="Details" asp-route-id="@Model.Id" class="btn btn-link">Cancel</a>
+                </div>
+            </form>
+        </div>
     </div>
 </div>
 

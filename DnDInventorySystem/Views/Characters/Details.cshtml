@@ -8,139 +8,157 @@
     bool Can(DnDInventorySystem.Models.GamePrivilege flag) => privileges.HasFlag(flag);
 }
 
-<div class="mb-4 d-flex justify-content-between align-items-center">
-    <div>
-        <h1 class="mb-1">@character.Name</h1>
-        <p class="text-muted mb-0">
-            Game: <strong>@character.Game?.Name</strong> · Owner: <strong>@character.Owner?.Name</strong>
-        </p>
+<div class="box game-box">
+    <div class="mb-4 d-flex justify-content-between align-items-center">
+        <div class="d-flex gap-2">
+            @if (isOwner || Can(DnDInventorySystem.Models.GamePrivilege.EditCharacters))
+            {
+                <a class="btn btn-outline-secondary" asp-action="Edit" asp-route-id="@character.Id">Edit</a>
+            }
+            <a class="btn btn-outline-secondary" asp-action="Index" asp-route-gameId="@character.GameId">Back to characters</a>
+        </div>
     </div>
-    <div class="d-flex gap-2">
-        @if ((ViewBag.CanAssignItems as bool?) == true)
-        {
-            <a class="btn btn-primary" asp-action="AssignItems" asp-route-id="@character.Id">Give / assign items</a>
-        }
-        <a class="btn btn-outline-secondary" asp-action="Index" asp-route-gameId="@character.GameId">Back to characters</a>
-    </div>
-</div>
 
-<div class="row g-4">
-    <div class="col-lg-4">
-        <div class="card shadow-sm mb-3">
-            <div class="card-body">
-                <h5 class="card-title">Character info</h5>
-                <div class="text-center mb-3">
+    <div class="row g-4 item-detail-layout">
+        <div class="col-lg-4">
+            <div class="card shadow-sm">
+                <div class="card-body d-flex align-items-center justify-content-center">
                     @if (!string.IsNullOrWhiteSpace(character.PhotoUrl))
                     {
-                        <img src="@character.PhotoUrl" alt="@character.Name" class="img-fluid rounded shadow-sm" style="max-height: 240px; object-fit: cover;" />
+                        <img src="@character.PhotoUrl" alt="@character.Name" class="img-fluid rounded shadow-sm item-detail-image" />
                     }
                     else
                     {
                         <div class="text-muted">No portrait set</div>
                     }
                 </div>
-                <p class="mb-2"><strong>Description:</strong> @(!string.IsNullOrWhiteSpace(character.Description) ? character.Description : "No description")</p>
-                <p class="mb-2"><strong>Created by:</strong> @character.CreatedByUser?.Name</p>
             </div>
+        </div>
+
+        <div class="col-lg-8">
+            <div class="card shadow-sm mb-3">
+                <div class="card-body">
+                    <div class="d-flex flex-column flex-md-row justify-content-between align-items-start gap-2 mb-3">
+                        <div class="item-name">@character.Name</div>
+                        <div class="ms-md-auto align-self-start">
+                            <span class="badge item-created-badge">Created by @character.CreatedByUser?.Name</span>
+                        </div>
+                    </div>
+                    <div class="item-meta d-flex flex-wrap gap-2 mb-3">
+                        <span class="fw-semibold">Owner:</span>
+                        <span>@character.Owner?.Name</span>
+                    </div>
+                    <div class="item-description mb-0">
+                        @(!string.IsNullOrWhiteSpace(character.Description) ? character.Description : "No description")
+                    </div>
+                </div>
+            </div>
+
         </div>
     </div>
 
-    <div class="col-lg-8">
-        <div class="card shadow-sm">
-            <div class="card-body">
-                <div class="d-flex justify-content-between align-items-center mb-3">
-                    <h5 class="card-title mb-0">Inventory</h5>
-                    <span class="text-muted small">@Model.Inventory.Count item entries</span>
-                </div>
+    <div class="row g-4">
+        <div class="col-12">
+            <div class="card shadow-sm inventory-card">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h5 class="card-title mb-0">Inventory</h5>
+                        <span class="text-muted small">@Model.Inventory.Count item entries</span>
+                    </div>
 
-                @if (!Model.Inventory.Any())
-                {
-                    <p class="text-muted mb-0">No items assigned yet.</p>
-                }
-                else
-                {
-                    var canEditInventory = isOwner || Can(DnDInventorySystem.Models.GamePrivilege.EditCharacterInventory);
-                    <form asp-action="UpdateInventoryBulk" method="post">
-                        <input type="hidden" name="characterId" value="@character.Id" />
-                        <div class="d-flex justify-content-between align-items-center mb-2">
-                            <div class="text-muted small">@Model.Inventory.Count item entries</div>
-                            @if (canEditInventory)
-                            {
-                                <button type="submit" class="btn btn-sm btn-outline-primary">Save changes</button>
-                            }
-                        </div>
-                        <div class="table-responsive">
-                            <table class="table align-middle">
-                                <thead>
-                                    <tr>
-                                        <th style="width: 60px;">Pic</th>
-                                        <th>Name</th>
-                                        <th>Description</th>
-                                        <th style="width: 260px;">Inventory</th>
-                                        <th></th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    @for (int i = 0; i < Model.Inventory.Count; i++)
+                    @if (!Model.Inventory.Any())
+                    {
+                        <p class="text-muted mb-0">No items assigned yet.</p>
+                    }
+                    else
+                    {
+                        var canEditInventory = isOwner || Can(DnDInventorySystem.Models.GamePrivilege.EditCharacterInventory);
+                        <form asp-action="UpdateInventoryBulk" method="post">
+                            <input type="hidden" name="characterId" value="@character.Id" />
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <div class="text-muted small">@Model.Inventory.Count item entries</div>
+                                <div class="d-flex align-items-center gap-2">
+                                    @if ((ViewBag.CanAssignItems as bool?) == true)
                                     {
-                                        var entry = Model.Inventory[i];
-                                        <tr>
-                                            <td>
-                                                @if (!string.IsNullOrWhiteSpace(entry.Item?.PhotoUrl))
-                                                {
-                                                    <img src="@entry.Item.PhotoUrl" alt="@entry.Item.Name" class="img-fluid rounded" style="max-width:48px; max-height:48px;" />
-                                                }
-                                                else
-                                                {
-                                                    <span class="text-muted small">No img</span>
-                                                }
-                                            </td>
-                                            <td>
-                                                <div class="fw-semibold">@entry.Item?.Name</div>
-                                                <div class="text-muted small">@entry.Item?.Category?.Name</div>
-                                            </td>
-                                            <td class="text-muted small">@entry.Item?.Description</td>
-                                            <td>
-                                                <input type="hidden" name="Updates[@i].EntryId" value="@entry.Id" />
-                                                @if (canEditInventory)
-                                                {
-                                                    <div class="d-flex align-items-center gap-2">
-                                                        <input type="number" name="Updates[@i].Quantity" min="1" value="@Model.Updates[i].Quantity" class="form-control form-control-sm" style="width:80px;" />
-                                                        <div class="form-check">
-                                                            <input type="checkbox" class="form-check-input" name="Updates[@i].IsEquipped" value="true" @(Model.Updates[i].IsEquipped ? "checked" : null) />
-                                                            <input type="hidden" name="Updates[@i].IsEquipped" value="false" />
-                                                            <label class="form-check-label small">With them</label>
-                                                        </div>
-                                                    </div>
-                                                }
-                                                else
-                                                {
-                                                    <div class="text-muted small">Qty: @entry.Quantity</div>
-                                                    <div class="text-muted small">With them: @(entry.IsEquipped ? "Yes" : "No")</div>
-                                                }
-                                            </td>
-                                            <td class="text-end">
-                                                @if (isOwner || Can(DnDInventorySystem.Models.GamePrivilege.RemoveItemsFromCharacters))
-                                                {
-                                                    <button type="submit"
-                                                            class="btn btn-sm btn-outline-danger"
-                                                            formaction="@Url.Action("RemoveInventory")"
-                                                            formmethod="post"
-                                                            formnovalidate
-                                                            name="entryId"
-                                                            value="@entry.Id"
-                                                            onclick="return confirm('Remove this item from the character?');">
-                                                        Remove
-                                                    </button>
-                                                }
-                                            </td>
-                                        </tr>
+                                        <a class="btn btn-sm btn-primary" asp-action="AssignItems" asp-route-id="@character.Id">Give / assign items</a>
                                     }
-                                </tbody>
-                            </table>
-                        </div>
-                    </form>
-                }
+                                    @if (canEditInventory)
+                                    {
+                                        <button type="submit" class="btn btn-sm btn-outline-primary">Save changes</button>
+                                    }
+                                </div>
+                            </div>
+                            <div class="table-responsive">
+                                <table class="table table-striped align-middle">
+                                    <thead>
+                                        <tr>
+                                            <th style="width: 90px;">Picture</th>
+                                            <th>Name</th>
+                                            <th style="width: 260px;">Inventory</th>
+                                            <th></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @for (int i = 0; i < Model.Inventory.Count; i++)
+                                        {
+                                            var entry = Model.Inventory[i];
+                                            <tr>
+                                                <td>
+                                                    @if (!string.IsNullOrWhiteSpace(entry.Item?.PhotoUrl))
+                                                    {
+                                                        <img src="@entry.Item.PhotoUrl" alt="@entry.Item.Name" class="img-fluid rounded" style="max-width:72px; max-height:72px;" />
+                                                    }
+                                                    else
+                                                    {
+                                                        <span class="text-muted small">No picture</span>
+                                                    }
+                                                </td>
+                                                <td>
+                                                    <div class="fw-semibold">@entry.Item?.Name</div>
+                                                    <div class="text-muted small">@entry.Item?.Category?.Name</div>
+                                                </td>
+                                                <td>
+                                                    <input type="hidden" name="Updates[@i].EntryId" value="@entry.Id" />
+                                                    @if (canEditInventory)
+                                                    {
+                                                        <div class="d-flex align-items-center gap-2">
+                                                            <input type="number" name="Updates[@i].Quantity" min="1" value="@Model.Updates[i].Quantity" class="form-control form-control-sm" style="width:80px;" />
+                                                            <div class="form-check">
+                                                                <input type="checkbox" class="form-check-input carry-toggle" name="Updates[@i].IsEquipped" value="true" @(Model.Updates[i].IsEquipped ? "checked" : null) />
+                                                                <input type="hidden" name="Updates[@i].IsEquipped" value="false" />
+                                                                <label class="form-check-label small">With them</label>
+                                                            </div>
+                                                        </div>
+                                                    }
+                                                    else
+                                                    {
+                                                        <div class="text-muted small">Qty: @entry.Quantity</div>
+                                                        <div class="text-muted small">With them: @(entry.IsEquipped ? "Yes" : "No")</div>
+                                                    }
+                                                </td>
+                                                <td class="text-end">
+                                                    @if (isOwner || Can(DnDInventorySystem.Models.GamePrivilege.RemoveItemsFromCharacters))
+                                                    {
+                                                        <button type="submit"
+                                                                class="btn btn-sm btn-outline-danger"
+                                                                formaction="@Url.Action("RemoveInventory")"
+                                                                formmethod="post"
+                                                                formnovalidate
+                                                                name="entryId"
+                                                                value="@entry.Id"
+                                                                onclick="return confirm('Remove this item from the character?');">
+                                                            Remove
+                                                        </button>
+                                                    }
+                                                </td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                        </form>
+                    }
+                </div>
             </div>
         </div>
     </div>

@@ -4,56 +4,59 @@
     ViewData["Title"] = "Your profile";
 }
 
-<div class="d-flex align-items-center justify-content-between mb-4">
-    <div>
-        <h1 class="mb-1">Account settings</h1>
-        <p class="text-muted mb-0">Update your display name or change your password.</p>
+<div class="box game-box game-form-box">
+    <div class="d-flex align-items-center justify-content-between mb-4">
+        <div>
+            <h1 class="mb-1">Account settings</h1>
+            <p class="text-muted mb-0">Update your username or change your password.</p>
+        </div>
+        <a class="btn btn-link" asp-controller="Games" asp-action="Index">Back to games</a>
     </div>
-    <a class="btn btn-link" asp-controller="Games" asp-action="Index">Back to games</a>
-    </div>
 
-@if (TempData["ProfileMessage"] is string status)
-{
-    <div class="alert alert-success">@status</div>
-}
+    @if (TempData["ProfileMessage"] is string status)
+    {
+        <div class="alert alert-success">@status</div>
+    }
 
-<div class="row">
-    <div class="col-lg-6 col-xl-5">
-        <div class="card shadow-sm">
-            <div class="card-body">
-                <form asp-action="Profile" method="post" novalidate>
-                    @Html.AntiForgeryToken()
-                    <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+    <div class="row justify-content-center">
+        <div class="col-12 col-xl-8">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <form asp-action="Profile" method="post" novalidate>
+                        @Html.AntiForgeryToken()
+                        <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
 
-                    <div class="mb-3">
-                        <label asp-for="DisplayName" class="form-label"></label>
-                        <input asp-for="DisplayName" class="form-control" />
-                        <span asp-validation-for="DisplayName" class="text-danger"></span>
-                    </div>
+                        <div class="mb-3">
+                            <label asp-for="DisplayName" class="form-label"></label>
+                            <input asp-for="DisplayName" class="form-control" placeholder="Choose a unique username" />
+                            <span asp-validation-for="DisplayName" class="text-danger"></span>
+                        </div>
 
-                    <div class="mb-3">
-                        <label class="form-label">Email</label>
-                        <div class="form-control-plaintext">@Model.Email</div>
-                    </div>
+                        <div class="mb-3">
+                            <label class="form-label">Email</label>
+                            <div class="form-control-plaintext">@Model.Email</div>
+                            <input type="hidden" asp-for="Email" />
+                        </div>
 
-                    <hr />
-                    <h6>Change password</h6>
-                    <p class="text-muted small">Enter your current password and a new password to update it. Leave blank to keep your current password.</p>
+                        <hr />
+                        <h6>Change password</h6>
+                        <p class="text-muted small">Enter your current password and a new password to update it. Leave blank to keep your current password.</p>
 
-                    <div class="mb-3">
-                        <label asp-for="CurrentPassword" class="form-label"></label>
-                        <input asp-for="CurrentPassword" class="form-control" autocomplete="current-password" />
-                        <span asp-validation-for="CurrentPassword" class="text-danger"></span>
-                    </div>
+                        <div class="mb-3">
+                            <label asp-for="CurrentPassword" class="form-label"></label>
+                            <input asp-for="CurrentPassword" class="form-control" autocomplete="current-password" />
+                            <span asp-validation-for="CurrentPassword" class="text-danger"></span>
+                        </div>
 
-                    <div class="mb-3">
-                        <label asp-for="NewPassword" class="form-label"></label>
-                        <input asp-for="NewPassword" class="form-control" autocomplete="new-password" />
-                        <span asp-validation-for="NewPassword" class="text-danger"></span>
-                    </div>
+                        <div class="mb-3">
+                            <label asp-for="NewPassword" class="form-label"></label>
+                            <input asp-for="NewPassword" class="form-control" autocomplete="new-password" />
+                            <span asp-validation-for="NewPassword" class="text-danger"></span>
+                        </div>
 
-                    <button type="submit" class="btn btn-primary">Save changes</button>
-                </form>
+                        <button type="submit" class="btn btn-primary">Save changes</button>
+                    </form>
+                </div>
             </div>
         </div>
     </div>

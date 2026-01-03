@@ -4,9 +4,9 @@ namespace DnDInventorySystem.ViewModels
 {
     public class UpdateProfileViewModel
     {
-        [Required(ErrorMessage = "Display name is required!")]
-        [Display(Name = "Display name")]
-        [StringLength(50, MinimumLength = 1, ErrorMessage = "user does not match the specified number of symbols 1-50 symbols!")]
+        [Required(ErrorMessage = "Username is required!")]
+        [Display(Name = "Username")]
+        [StringLength(50, MinimumLength = 1, ErrorMessage = "Username must be between 1 and 50 characters.")]
         public string DisplayName { get; set; } = "";
 
         [Required(ErrorMessage = "E-mail is required!")]
