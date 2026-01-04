@@ -424,6 +424,7 @@ namespace DnDInventorySystem.Controllers
                 JoinCodeActive = game.JoinCodeActive
             };
 
+            await SetHistorySidebarAsync(game.Id, true);
             return View(viewModel);
         }
 
@@ -442,6 +443,8 @@ namespace DnDInventorySystem.Controllers
             game.JoinCodeActive = true;
             await _context.SaveChangesAsync();
 
+            var actor = await GetCurrentUserNameAsync();
+            await LogAsync(game.Id, "JoinCodeGenerated", $"{actor} generated and activated a join code for {game.Name}", null, null, null);
             TempData["GameMessage"] = "Join code generated and activated.";
             return RedirectToAction(nameof(JoinCode), new { id = game.Id });
         }
@@ -466,6 +469,9 @@ namespace DnDInventorySystem.Controllers
             game.JoinCodeActive = activate;
             await _context.SaveChangesAsync();
 
+            var actorName = await GetCurrentUserNameAsync();
+            var action = activate ? "activated" : "deactivated";
+            await LogAsync(game.Id, "JoinCodeToggled", $"{actorName} {action} the join code for {game.Name}", null, null, null);
             TempData["GameMessage"] = activate ? "Join code activated." : "Join code deactivated.";
             return RedirectToAction(nameof(JoinCode), new { id = game.Id });
         }
