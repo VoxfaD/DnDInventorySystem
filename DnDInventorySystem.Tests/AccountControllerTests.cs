@@ -49,8 +49,11 @@ namespace DnDInventorySystem.Tests
             var result = await controller.Register(model);
 
             var redirect = Assert.IsType<RedirectToActionResult>(result);
-            Assert.Equal("Index", redirect.ActionName);
-            Assert.Equal("Games", redirect.ControllerName);
+            Assert.Equal("Login", redirect.ActionName);
+            Assert.Null(redirect.ControllerName);
+            Assert.True(controller.TempData.ContainsKey("LoginMessage"));
+            var successMessage = Assert.IsType<string>(controller.TempData["LoginMessage"]);
+            Assert.Equal("Konts tika veiksmīgi izveidots. Tagad vari pieteikties.", Translate(successMessage));
             Assert.Single(context.Users);
             Assert.Equal("Linda", context.Users.First().Name);
             _output.WriteLine("Reģistrācija veiksmīga!");
@@ -402,6 +405,7 @@ namespace DnDInventorySystem.Tests
             "Parole neatbilst drošības prasībām! Jābūt skaitlim, simbolam (piemēram, #), lielajam burtam un 8-128 simboliem.",
             "Password fields do not match!" => "Paroles lauki nesakrīt!",
             "Incorrect email address or password!" => "Nepareiza E-pasta adrese vai parole!",
+            "Account created successfully. You can now log in." => "Konts tika veiksmīgi izveidots. Tagad vari pieteikties.",
             _ => message
         };
 
