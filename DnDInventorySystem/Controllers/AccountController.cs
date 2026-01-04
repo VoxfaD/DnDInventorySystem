@@ -163,14 +163,11 @@ namespace DnDInventorySystem.Controllers
             _context.Users.Add(user);
             await _context.SaveChangesAsync();
 
-            await SignInUserAsync(user);
-
-            if (!string.IsNullOrEmpty(model.ReturnUrl) && Url.IsLocalUrl(model.ReturnUrl))
-            {
-                return Redirect(model.ReturnUrl);
-            }
-
-            return RedirectToAction("Index", "Games");
+            TempData["LoginMessage"] = "Account created successfully. You can now log in.";
+            var returnUrl = !string.IsNullOrEmpty(model.ReturnUrl) && Url.IsLocalUrl(model.ReturnUrl)
+                ? model.ReturnUrl
+                : null;
+            return RedirectToAction(nameof(Login), new { returnUrl });
         }
 
         //Login out of the website
