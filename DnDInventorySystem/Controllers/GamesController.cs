@@ -222,6 +222,55 @@ namespace DnDInventorySystem.Controllers
             var game = await _context.Games.FirstOrDefaultAsync(g => g.Id == id && g.CreatedByUserId == userId);
             if (game != null)
             {
+                // fix on deleting games
+                var itemCharacters = await _context.ItemCharacters
+                    .Where(ic => ic.Character.GameId == game.Id)
+                    .ToListAsync();
+                if (itemCharacters.Any())
+                {
+                    _context.ItemCharacters.RemoveRange(itemCharacters);
+                }
+
+                var historyLogs = await _context.HistoryLogs
+                    .Where(h => h.GameId == game.Id)
+                    .ToListAsync();
+                if (historyLogs.Any())
+                {
+                    _context.HistoryLogs.RemoveRange(historyLogs);
+                }
+
+                var characters = await _context.Characters
+                    .Where(c => c.GameId == game.Id)
+                    .ToListAsync();
+                if (characters.Any())
+                {
+                    _context.Characters.RemoveRange(characters);
+                }
+
+                var items = await _context.Items
+                    .Where(i => i.GameId == game.Id)
+                    .ToListAsync();
+                if (items.Any())
+                {
+                    _context.Items.RemoveRange(items);
+                }
+
+                var categories = await _context.Categories
+                    .Where(c => c.GameId == game.Id)
+                    .ToListAsync();
+                if (categories.Any())
+                {
+                    _context.Categories.RemoveRange(categories);
+                }
+
+                var roles = await _context.UserGameRoles
+                    .Where(r => r.GameId == game.Id)
+                    .ToListAsync();
+                if (roles.Any())
+                {
+                    _context.UserGameRoles.RemoveRange(roles);
+                }
+
                 _context.Games.Remove(game);
                 await _context.SaveChangesAsync();
             }
